@@ -1,22 +1,25 @@
 package traversium.tripservice.dto
 
+import traversium.tripservice.db.model.Album
 import traversium.tripservice.db.model.Trip
 
 data class TripDto(
     val tripId: Long,
-    val name: String,
-    val coverPhoto: String? = null,
+    val title: String,
+    val description: String? = null,
     val owner: String,
-    val editors: Set<String>? = null,
-    val viewers: Set<String>? = null,
-    val albums: List<Long>? = null,
+    val coverPhotoUrl: String? = null,
+    val collaborators: Set<String> = emptySet(),
+    val viewers: Set<String> = emptySet(),
+    val albums: List<Album> = emptyList(),
 ) {
     fun toTrip() = Trip(
         tripId = tripId,
-        name = name,
-        coverPhoto = coverPhoto,
+        title = title,
+        description = description,
         owner = owner,
-        editors = editors,
+        coverPhotoUrl = coverPhotoUrl,
+        collaborators = collaborators,
         viewers = viewers,
         albums = albums
     )
