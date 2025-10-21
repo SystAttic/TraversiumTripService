@@ -10,51 +10,42 @@ data class Trip(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val tripId: Long = 0,
 
-    @Column(name = "name")
-    val name: String = "collection name",
+    @Column(nullable = false)
+    val title: String,
 
-    @Column(name = "cover_photo")
-    val coverPhoto: String? = null,
+    val description: String? = null,
 
-    //@ManyToOne(fetch = FetchType.LAZY)
-    //@JoinColumn(name = "owner_id", nullable = false)
-    val owner: String,
+    @Column(nullable = false)
+    val owner: String, // Keycloak user ID
 
-    //@ManyToMany
-    /*@JoinTable(
-        name = "collection_editors",
-        joinColumns = [JoinColumn(name = "collection_id")],
-        inverseJoinColumns = [JoinColumn(name = "user_id")]
-    )*/
+    @Column(name = "cover_photo_url")
+    val coverPhotoUrl: String? = null,
 
-    // A se to dela tako?
+    /* ---- Collaborators / Editors ---- */
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
-        name = "user_table",
-        joinColumns = [JoinColumn(name = "uid")],
+        name = "trip_collaborators",
+        joinColumns = [JoinColumn(name = "trip_id")]
     )
-    @Column(name = "editors")
-    val editors: Set<String>? = emptySet(),
+    @Column(name = "collaborator_id")
+    val collaborators: Set<String> = emptySet(),
 
-    //@ManyToMany
-    /*@JoinTable(
-        name = "collection_viewers",
-        joinColumns = [JoinColumn(name = "collection_id")],
-        inverseJoinColumns = [JoinColumn(name = "user_id")]
-    )*/
-    // TODO
-    val viewers: Set<String>? = emptySet(),
+    /* ---- Viewers ---- */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+        name = "trip_viewers",
+        joinColumns = [JoinColumn(name = "trip_id")]
+    )
+    @Column(name = "viewer_id")
+    val viewers: Set<String> = emptySet(),
 
-    //@OneToMany(fetch = FetchType.LAZY)
-    //@JoinColumn(name = "start_node_id")
-
-    // TODO
-    val albums: List<Long>? = null
-
+    /* ---- Albums ---- */
+    @OneToMany(mappedBy = "trip", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
+    val albums: List<Album> = emptyList()
 ){
     companion object{
         const val TABLE_NAME = "trip"
     }
 
-    fun toDto() = TripDto(tripId, name, coverPhoto, owner, editors, viewers, albums)
+    fun toDto() = TripDto(tripId, title, description, owner, coverPhotoUrl, collaborators, viewers, albums)
 }
