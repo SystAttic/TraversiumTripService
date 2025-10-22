@@ -74,4 +74,11 @@ class TripService(
 
         return tripRepository.save(mergedTrip).toDto()
     }
+
+    fun getTripsByCollaborator(collaborator: String): List<TripDto>{
+        val trips = tripRepository.findByCollaborator(collaborator)
+        return trips.map { it.toDto() }
+    }
+
+    // TODO - dodaj (tudi na drugih Service) endpointe, ki so še potrebni
 }

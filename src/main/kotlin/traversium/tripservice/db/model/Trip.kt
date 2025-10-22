@@ -8,7 +8,8 @@ import traversium.tripservice.dto.TripDto
 data class Trip(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val tripId: Long = 0,
+    @Column(name = "trip_id", unique = true, nullable = false, updatable = false, length = 36)
+    var tripId: Long? = null,
 
     @Column(nullable = false)
     val title: String,
@@ -22,16 +23,20 @@ data class Trip(
     val coverPhotoUrl: String? = null,
 
     /* ---- Collaborators / Editors ---- */
-    @ElementCollection(fetch = FetchType.EAGER)
+    @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(
         name = "trip_collaborators",
-        joinColumns = [JoinColumn(name = "trip_id")]
+        joinColumns = [JoinColumn(name = "trip_id")],
+        indexes = [
+            Index(name = "idx_trip_collaborators_trip", columnList = "trip_id"),
+            Index(name = "idx_trip_collaborators_user", columnList = "collaborator_id")
+        ]
     )
     @Column(name = "collaborator_id")
     val collaborators: Set<String> = emptySet(),
 
     /* ---- Viewers ---- */
-    @ElementCollection(fetch = FetchType.EAGER)
+    @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(
         name = "trip_viewers",
         joinColumns = [JoinColumn(name = "trip_id")]
