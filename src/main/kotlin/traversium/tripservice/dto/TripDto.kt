@@ -4,7 +4,7 @@ import traversium.tripservice.db.model.Album
 import traversium.tripservice.db.model.Trip
 
 data class TripDto(
-    val tripId: Long,
+    val tripId: Long?,
     val title: String,
     val description: String? = null,
     val owner: String,

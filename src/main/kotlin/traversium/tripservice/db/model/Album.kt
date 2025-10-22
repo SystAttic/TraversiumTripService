@@ -8,7 +8,8 @@ import traversium.tripservice.dto.AlbumDto
 data class Album(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val albumId: Long = 0,
+    @Column(name = "album_id", unique = true, nullable = false, updatable = false, length = 36)
+    var albumId: Long? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trip_id")

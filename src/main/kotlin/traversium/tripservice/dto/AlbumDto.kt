@@ -3,10 +3,10 @@ package traversium.tripservice.dto
 import traversium.tripservice.db.model.Album
 
 data class AlbumDto(
-    val albumId: Long,
+    val albumId: Long?,
     val title: String,
     val description: String? = null,
-    val tripId: Long,
+    val tripId: Long?,
     val media: List<MediaDto> = emptyList()
 ) {
     fun toAlbum(): Album = Album(
