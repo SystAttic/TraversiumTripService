@@ -3,7 +3,7 @@ package traversium.tripservice.dto
 import traversium.tripservice.db.model.Media
 
 data class MediaDto(
-    val mediaId: Long,
+    val mediaId: Long?,
     val pathUrl: String,
     val ownerId: String,
     val fileType: String,
