@@ -5,8 +5,8 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import org.springframework.web.ErrorResponse
 import org.springframework.web.bind.annotation.*
 import traversium.tripservice.dto.TripDto
 import traversium.tripservice.service.TripService
@@ -26,7 +26,7 @@ class TripController(
                 responseCode = "200",
                 description = "Get all trips",
                 content = [Content(
-                    mediaType = "application/json",
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = TripDto::class)
                 )]
             ),
@@ -51,7 +51,7 @@ class TripController(
                 responseCode = "200",
                 description = "Get trip by id",
                 content = [Content(
-                    mediaType = "application/json",
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = TripDto::class)
                 )]
             ),
@@ -76,7 +76,7 @@ class TripController(
                 responseCode = "200",
                 description = "Get trip by ownerId",
                 content = [Content(
-                    mediaType = "application/json",
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = TripDto::class)
                 )]
             ),
@@ -102,7 +102,7 @@ class TripController(
                 responseCode = "200",
                 description = "Trip successfully added",
                 content = [Content(
-                    mediaType = "application/json",
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = TripDto::class)
                 )]
             ),
@@ -128,7 +128,7 @@ class TripController(
                 responseCode = "200",
                 description = "Trip successfully updated",
                 content = [Content(
-                    mediaType = "application/json",
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = TripDto::class)
                 )]
             ),
@@ -154,7 +154,7 @@ class TripController(
                 responseCode = "200",
                 description = "Trip successfully deleted",
                 content = [Content(
-                    mediaType = "application/json",
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = TripDto::class)
                 )]
             ),
@@ -182,7 +182,7 @@ class TripController(
                 responseCode = "200",
                 description = "Get trip by collaboratorId",
                 content = [Content(
-                    mediaType = "application/json",
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = TripDto::class)
                 )]
             ),
