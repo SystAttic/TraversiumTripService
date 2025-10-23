@@ -21,7 +21,7 @@ class AlbumService(
 ) {
 
     fun getAlbumsForTrip(tripId: Long): List<AlbumDto> =
-        albumRepository.findByTripId(tripId).map { it.toDto() }
+        albumRepository.getByTripId(tripId).map { it.toDto() }
 
     fun getAlbumById(albumId: Long): AlbumDto =
         albumRepository.findById(albumId)
@@ -60,7 +60,7 @@ class AlbumService(
             AlbumEvent(
                 eventType = AlbumEventType.ALBUM_UPDATED,
                 albumId = existingAlbum.albumId,
-                tripId = existingAlbum.trip!!.tripId,
+                tripId = existingAlbum.trip?.tripId,
             )
         )
         return albumRepository.save(updatedAlbum).toDto()

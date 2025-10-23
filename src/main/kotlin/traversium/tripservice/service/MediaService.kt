@@ -35,7 +35,7 @@ class MediaService(
     fun getMediaById(mediaId: Long): MediaDto =
         mediaRepository.findById(mediaId).orElseThrow { MediaNotFoundException(mediaId) }.toDto()
 
-    fun addMedia(albumId: Long, dto: MediaDto): MediaDto {
+    fun addMediaToAlbum(albumId: Long, dto: MediaDto): MediaDto {
         val album = albumRepository.findById(albumId)
             .orElseThrow { AlbumNotFoundException(albumId) }
 
@@ -77,13 +77,14 @@ class MediaService(
         return mediaRepository.save(media).toDto()
     }
 
-    fun deleteMedia(mediaId: Long) {
-        val existingMedia = mediaRepository.findById(mediaId)
-            .orElseThrow { MediaNotFoundException(mediaId) }
+    fun deleteMediaFromAlbum(albumId: Long, mediaId: Long) {
+        val album = albumRepository.findById(albumId).orElseThrow { AlbumNotFoundException(albumId) }
+        val foundMedia = mediaRepository.findByMediaIdAndAlbumId(mediaId, albumId)
+            ?: throw MediaNotFoundException(mediaId)
 
         // Optional: notify FileStorageService
         try {
-            restTemplate.delete("$fileStorageUrl/files/delete-by-url?url=${existingMedia.pathUrl}")
+            restTemplate.delete("$fileStorageUrl/files/delete-by-url?url=${foundMedia.pathUrl}")
         } catch (e: Exception) {
             println("Could not notify FileStorageService: ${e.message}")
         }
@@ -92,11 +93,11 @@ class MediaService(
         eventPublisher.publishEvent(
             MediaEvent(
                 eventType = MediaEventType.MEDIA_DELETED,
-                mediaId = existingMedia.mediaId,
-                albumId = existingMedia.album!!.albumId,
-                pathUrl = existingMedia.pathUrl,
+                mediaId = foundMedia.mediaId,
+                albumId = album.albumId,
+                pathUrl = foundMedia.pathUrl,
             )
         )
-        mediaRepository.delete(existingMedia)
+        mediaRepository.delete(foundMedia)
     }
 }
