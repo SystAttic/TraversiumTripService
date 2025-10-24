@@ -17,6 +17,7 @@ import traversium.tripservice.kafka.data.AlbumEventType
 class AlbumService(
     private val albumRepository: AlbumRepository,
     private val tripRepository: TripRepository,
+    private val tripService: TripService,
     private val eventPublisher: ApplicationEventPublisher
 ) {
 
@@ -45,7 +46,10 @@ class AlbumService(
             )
         )
 
-        return albumRepository.save(album).toDto()
+        albumRepository.save(album).toDto()
+        tripService.addAlbumToTrip(tripId, dto)
+
+        return dto
     }
 
     fun updateAlbum(albumId: Long, dto: AlbumDto): AlbumDto {
