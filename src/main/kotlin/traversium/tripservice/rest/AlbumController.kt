@@ -12,7 +12,7 @@ import traversium.tripservice.dto.AlbumDto
 import traversium.tripservice.service.AlbumService
 
 @RestController
-@RequestMapping("/trips/{tripId}/albums")
+@RequestMapping("/albums/")
 class AlbumController(
     private val albumService: AlbumService
 ) {
@@ -44,8 +44,8 @@ class AlbumController(
             )
         ]
     )
-    fun getAlbumsForTrip(@PathVariable tripId: Long): List<AlbumDto> =
-        albumService.getAlbumsForTrip(tripId)
+    fun getAllAlbums(): List<AlbumDto> =
+        albumService.getAllAlbums()
 
     @GetMapping("/{albumId}")
     @Operation(
@@ -73,7 +73,7 @@ class AlbumController(
     fun getAlbumById(@PathVariable albumId: Long): AlbumDto =
         albumService.getAlbumById(albumId)
 
-    @PostMapping
+    @PostMapping("/{tripId}")
     @Operation(
         summary = "Create new album",
         description = "Creates a new album",

@@ -10,8 +10,4 @@ import traversium.tripservice.db.model.Media
 @Repository
 interface AlbumRepository : JpaRepository<Album, Long> {
 
-    @Query("select a.media from Album a where a.albumId = :albumId")
-    fun getMedia(@Param("albumId") albumId: Long): List<Media>
-
-    fun getByTripId(@Param("tripId") tripId: Long): List<Album>
 }

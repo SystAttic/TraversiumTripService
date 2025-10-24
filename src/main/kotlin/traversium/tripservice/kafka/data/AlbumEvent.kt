@@ -6,5 +6,5 @@ data class AlbumEvent(
     val eventType: AlbumEventType,
     val timestamp: Instant = Instant.now(),
     val albumId: Long?,
-    val tripId: Long?
+    val title: String,
 )

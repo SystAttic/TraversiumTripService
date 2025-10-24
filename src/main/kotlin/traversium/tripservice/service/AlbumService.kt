@@ -20,8 +20,8 @@ class AlbumService(
     private val eventPublisher: ApplicationEventPublisher
 ) {
 
-    fun getAlbumsForTrip(tripId: Long): List<AlbumDto> =
-        albumRepository.getByTripId(tripId).map { it.toDto() }
+    fun getAllAlbums(): List<AlbumDto> =
+        albumRepository.findAll().map { it.toDto() }
 
     fun getAlbumById(albumId: Long): AlbumDto =
         albumRepository.findById(albumId)
@@ -29,19 +29,19 @@ class AlbumService(
             .toDto()
 
     fun createAlbum(tripId: Long, dto: AlbumDto): AlbumDto {
-        val trip = tripRepository.findById(tripId)
-            .orElseThrow { TripNotFoundException(tripId) }
+        if(!tripRepository.findById(tripId).isPresent){
+            throw TripNotFoundException(tripId)
+        }
         val album = Album(
             title = dto.title,
             description = dto.description,
-            trip = trip
         )
         // Kafka event - Album CREATE
         eventPublisher.publishEvent(
             AlbumEvent(
                 eventType = AlbumEventType.ALBUM_CREATED,
                 albumId = album.albumId,
-                tripId = album.trip!!.tripId,
+                title = album.title,
             )
         )
 
@@ -51,32 +51,32 @@ class AlbumService(
     fun updateAlbum(albumId: Long, dto: AlbumDto): AlbumDto {
         val existingAlbum = albumRepository.findById(albumId)
             .orElseThrow { AlbumNotFoundException(albumId) }
+
         val updatedAlbum = existingAlbum.copy(
             title = dto.title,
-            description = dto.description
+            description = dto.description,
+            media = dto.media.map { it.toMedia() }.toMutableSet(),
         )
         // Kafka event - Album UPDATE
         eventPublisher.publishEvent(
             AlbumEvent(
                 eventType = AlbumEventType.ALBUM_UPDATED,
-                albumId = existingAlbum.albumId,
-                tripId = existingAlbum.trip?.tripId,
+                albumId = updatedAlbum.albumId,
+                title = updatedAlbum.title,
             )
         )
         return albumRepository.save(updatedAlbum).toDto()
     }
 
     fun deleteAlbum(albumId: Long) {
-        if (!albumRepository.existsById(albumId))
-            throw AlbumNotFoundException(albumId)
-
-        val album = getAlbumById(albumId)
+        val album = albumRepository.findById(albumId)
+            .orElseThrow { AlbumNotFoundException(albumId) }
         // Kafka event - Album DELETE
         eventPublisher.publishEvent(
             AlbumEvent(
                 eventType = AlbumEventType.ALBUM_DELETED,
                 albumId = album.albumId,
-                tripId = album.tripId,
+                title = album.title,
             )
         )
         albumRepository.deleteById(albumId)
