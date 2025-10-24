@@ -11,13 +11,14 @@ data class Trip(
     @Column(name = "trip_id", unique = true, nullable = false, updatable = false, length = 36)
     var tripId: Long? = null,
 
-    @Column(nullable = false)
+    @Column(name="title", nullable = false)
     val title: String,
 
+    @Column(name="description")
     val description: String? = null,
 
-    @Column(nullable = false)
-    val owner: String, // Keycloak user ID
+    @Column(name="owner_id", nullable = false)
+    val ownerId: String, // Keycloak user ID
 
     @Column(name = "cover_photo_url")
     val coverPhotoUrl: String? = null,
@@ -52,5 +53,5 @@ data class Trip(
         const val TABLE_NAME = "trip"
     }
 
-    fun toDto() = TripDto(tripId, title, description, owner, coverPhotoUrl, collaborators, viewers, albums.map{it.toDto()}.toMutableSet())
+    fun toDto() = TripDto(tripId, title, description, ownerId, coverPhotoUrl, collaborators, viewers, albums.map{it.toDto()}.toMutableSet())
 }
