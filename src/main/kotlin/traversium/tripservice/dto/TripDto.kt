@@ -4,9 +4,9 @@ import traversium.tripservice.db.model.Trip
 
 data class TripDto(
     val tripId: Long?,
-    val title: String,
+    val title: String?,
     val description: String? = null,
-    val ownerId: String,
+    val ownerId: String?,
     val coverPhotoUrl: String? = null,
     val collaborators: Set<String> = emptySet(),
     val viewers: Set<String> = emptySet(),

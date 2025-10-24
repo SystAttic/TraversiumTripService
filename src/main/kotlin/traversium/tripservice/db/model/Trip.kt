@@ -12,13 +12,13 @@ data class Trip(
     var tripId: Long? = null,
 
     @Column(name="title", nullable = false)
-    val title: String,
+    val title: String? = null,
 
     @Column(name="description")
     val description: String? = null,
 
     @Column(name="owner_id", nullable = false)
-    val ownerId: String, // Keycloak user ID
+    val ownerId: String? = null, // Firebase user ID
 
     @Column(name = "cover_photo_url")
     val coverPhotoUrl: String? = null,
@@ -46,8 +46,17 @@ data class Trip(
     val viewers: Set<String> = emptySet(),
 
     /* ---- Albums ---- */
-    @OneToMany(mappedBy = "trip", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
-    val albums: MutableSet<Album> = mutableSetOf(),
+    @OneToMany(cascade = [(CascadeType.ALL)], fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "trip_albums",
+        joinColumns = [JoinColumn(name = "trip_id")],
+        inverseJoinColumns = [JoinColumn(name = "album_id")],
+        indexes = [
+            Index(name = "idx_trip_albums_trip", columnList = "trip_id"),
+            Index(name = "idx_trip_albums_album", columnList = "album_id")
+        ]
+    )
+    var albums: MutableSet<Album> = mutableSetOf(),
 ){
     companion object{
         const val TABLE_NAME = "trip"

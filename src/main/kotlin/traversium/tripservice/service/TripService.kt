@@ -1,10 +1,8 @@
 package traversium.tripservice.service
 
 import org.springframework.context.ApplicationEventPublisher
-import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import traversium.tripservice.db.model.Trip
 import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.TripNotFoundException
 import traversium.tripservice.db.repository.TripRepository
@@ -28,7 +26,7 @@ class TripService(
         tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }.toDto()
 
     fun getTripsByOwner(ownerId: String): List<TripDto> =
-        tripRepository.findByOwner(ownerId).map { it.toDto() }
+        tripRepository.findByOwnerId(ownerId).map { it.toDto() }
 
     fun createTrip(dto: TripDto): TripDto {
         val trip = tripRepository.save(dto.toTrip())
