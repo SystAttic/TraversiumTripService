@@ -14,6 +14,7 @@ import traversium.tripservice.exceptions.AlbumNotFoundException
 import traversium.tripservice.exceptions.MediaNotFoundException
 import traversium.tripservice.db.repository.AlbumRepository
 import traversium.tripservice.db.repository.MediaRepository
+import traversium.tripservice.exceptions.TripNotFoundException
 import traversium.tripservice.kafka.data.MediaEvent
 import traversium.tripservice.kafka.data.MediaEventType
 
@@ -29,16 +30,18 @@ class MediaService(
 
     private val restTemplate = RestTemplate()
 
-    fun getMediaForAlbum(albumId: Long): List<MediaDto> =
-        mediaRepository.findByAlbumId(albumId).map { it.toDto() }
+    fun getAllMedia(): List<MediaDto> =
+        mediaRepository.findAll().map { it.toDto() }
 
     fun getMediaById(mediaId: Long): MediaDto =
         mediaRepository.findById(mediaId).orElseThrow { MediaNotFoundException(mediaId) }.toDto()
 
-    fun addMediaToAlbum(albumId: Long, dto: MediaDto): MediaDto {
-        val album = albumRepository.findById(albumId)
-            .orElseThrow { AlbumNotFoundException(albumId) }
 
+    // TODO - move these to AlbumService
+    /*fun addMediaToAlbum(albumId: Long, dto: MediaDto): MediaDto {
+        if(!albumRepository.findById(albumId).isPresent){
+            throw AlbumNotFoundException(albumId)
+        }
         // optional: validate file exists in File Storage
         try {
             val response: ResponseEntity<Map<*, *>> = restTemplate.exchange(
@@ -53,9 +56,7 @@ class MediaService(
         } catch (e: Exception) {
             println("Could not validate file in FileStorageService: ${e.message}")
         }
-
         val media = Media(
-            album = album,
             pathUrl = dto.pathUrl,
             ownerId = dto.ownerId,
             fileType = dto.fileType,
@@ -69,18 +70,15 @@ class MediaService(
             MediaEvent(
                 eventType = MediaEventType.MEDIA_ADDED,
                 mediaId = media.mediaId,
-                albumId = albumId,
                 pathUrl = media.pathUrl,
             )
         )
-
         return mediaRepository.save(media).toDto()
     }
 
-    fun deleteMediaFromAlbum(albumId: Long, mediaId: Long) {
-        val album = albumRepository.findById(albumId).orElseThrow { AlbumNotFoundException(albumId) }
-        val foundMedia = mediaRepository.findByMediaIdAndAlbumId(mediaId, albumId)
-            ?: throw MediaNotFoundException(mediaId)
+    fun deleteMedia(mediaId: Long) {
+        val foundMedia = mediaRepository.findById(mediaId)
+            .orElseThrow { MediaNotFoundException(mediaId)}
 
         // Optional: notify FileStorageService
         try {
@@ -94,10 +92,9 @@ class MediaService(
             MediaEvent(
                 eventType = MediaEventType.MEDIA_DELETED,
                 mediaId = foundMedia.mediaId,
-                albumId = album.albumId,
                 pathUrl = foundMedia.pathUrl,
             )
         )
         mediaRepository.delete(foundMedia)
-    }
+    }*/
 }

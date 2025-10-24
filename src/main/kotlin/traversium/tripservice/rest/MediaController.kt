@@ -12,7 +12,7 @@ import traversium.tripservice.dto.MediaDto
 import traversium.tripservice.service.MediaService
 
 @RestController
-@RequestMapping("/albums/{albumId}/media")
+@RequestMapping("/media")
 class MediaController(
     private val mediaService: MediaService
 ) {
@@ -40,13 +40,13 @@ class MediaController(
             )
         ]
     )
-    fun getMediaForAlbum(@PathVariable albumId: Long): List<MediaDto> =
-        mediaService.getMediaForAlbum(albumId)
+    fun getAllMedia(): List<MediaDto> =
+        mediaService.getAllMedia()
 
     @GetMapping("/{mediaId}")
     @Operation(
-        summary = "Get media by mediaId from album by albumId",
-        description = "Get media by mediaId from album by id",
+        summary = "Get media by mediaId",
+        description = "Get media by mediaId",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -66,12 +66,14 @@ class MediaController(
             )
         ]
     )
-    fun getMediaById(@PathVariable mediaId: Long, @PathVariable albumId: Long): MediaDto =
+    fun getMediaById(@PathVariable mediaId: Long): MediaDto =
         mediaService.getMediaById(mediaId)
 
-    @PostMapping
+
+    // TODO - Move to AlbumController
+    /*@PostMapping("/{albumId}")
     @Operation(
-        summary = "Add media to album by albumId",
+        summary = "Add media to album",
         description = "Add media to album by albumId",
         responses = [
             ApiResponse(
@@ -121,8 +123,8 @@ class MediaController(
             )
         ]
     )
-    fun deleteMediaFromAlbum(@PathVariable mediaId: Long, @PathVariable albumId: Long): ResponseEntity<Void> {
-        mediaService.deleteMediaFromAlbum(albumId, mediaId)
+    fun deleteMediaFromAlbum(@PathVariable mediaId: Long): ResponseEntity<Void> {
+        mediaService.deleteMedia(mediaId)
         return ResponseEntity.noContent().build()
-    }
+    }*/
 }
