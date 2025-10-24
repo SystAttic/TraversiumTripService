@@ -15,9 +15,10 @@ data class Album(
     @JoinColumn(name = "trip_id")
     val trip: Trip? = null,*/
 
-    @Column(nullable = false)
+    @Column(name="title", nullable = false)
     val title: String,
 
+    @Column(name = "description")
     val description: String? = null,
 
     @OneToMany(mappedBy = "album", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
