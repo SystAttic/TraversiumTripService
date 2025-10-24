@@ -14,23 +14,25 @@ data class Media(
     /*@ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "album_id")
     val album: Album? = null,*/
-
-    @Column(nullable = false)
+    @Column(name= "path_url", nullable = false)
     val pathUrl: String, // reference from File Storage Service
 
-    @Column(nullable = false)
+    @Column(name="owner_id", nullable = false)
     val ownerId: String, // who uploaded
 
-    @Column(nullable = false)
+    @Column(name="file_type",nullable = false)
     val fileType: String, // image | video
 
-    @Column(nullable = false)
+    @Column(name="file_format",nullable = false)
     val fileFormat: String, // e.g. jpg, png, mp4
 
-    @Column(nullable = false)
+    @Column(name="file_size",nullable = false)
     val fileSize: Long,
 
+    @Column(name="geo_location")
     val geoLocation: String? = null, // will later store coordinates or JSON
+
+    @Column(name="time_created")
     val timeCreated: String? = null  // ISO string from metadata or upload time
 ) {
     companion object {
