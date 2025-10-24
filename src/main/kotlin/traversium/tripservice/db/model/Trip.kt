@@ -46,11 +46,11 @@ data class Trip(
 
     /* ---- Albums ---- */
     @OneToMany(mappedBy = "trip", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
-    val albums: List<Album> = emptyList()
+    val albums: MutableSet<Album> = mutableSetOf(),
 ){
     companion object{
         const val TABLE_NAME = "trip"
     }
 
-    fun toDto() = TripDto(tripId, title, description, owner, coverPhotoUrl, collaborators, viewers, albums)
+    fun toDto() = TripDto(tripId, title, description, owner, coverPhotoUrl, collaborators, viewers, albums.map{it.toDto()}.toMutableSet())
 }

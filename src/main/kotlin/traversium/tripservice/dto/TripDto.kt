@@ -1,6 +1,5 @@
 package traversium.tripservice.dto
 
-import traversium.tripservice.db.model.Album
 import traversium.tripservice.db.model.Trip
 
 data class TripDto(
@@ -11,7 +10,7 @@ data class TripDto(
     val coverPhotoUrl: String? = null,
     val collaborators: Set<String> = emptySet(),
     val viewers: Set<String> = emptySet(),
-    val albums: List<Album> = emptyList(),
+    val albums: Set<AlbumDto> = emptySet(),
 ) {
     fun toTrip() = Trip(
         tripId = tripId,
@@ -21,6 +20,6 @@ data class TripDto(
         coverPhotoUrl = coverPhotoUrl,
         collaborators = collaborators,
         viewers = viewers,
-        albums = albums
+        albums = albums.map { it.toAlbum() }.toMutableSet(),
     )
 }
