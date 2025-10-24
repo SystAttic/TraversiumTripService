@@ -7,15 +7,9 @@ import traversium.tripservice.db.model.Trip
 
 @Repository
 interface TripRepository : JpaRepository<Trip, Long> {
-    fun findByOwner(owner: String): List<Trip>
+    @Query("select t from Trip t where t.owner = :ownerId")
+    fun findByOwner(ownerId: String): List<Trip>
 
-    @Query("""
-        select t
-        from Trip t
-        join t.collaborators e
-        where e = :collaborator
-        """
-    )
-
-    fun findByCollaborator(collaborator: String): List<Trip>
+    @Query("select t from Trip t join t.collaborators e where e = :collaboratorId")
+    fun findByCollaborator(collaboratorId: String): List<Trip>
 }

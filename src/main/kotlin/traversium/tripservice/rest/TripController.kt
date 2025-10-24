@@ -42,7 +42,7 @@ class TripController(
     )
     fun getAllTrips(): List<TripDto> = tripService.getAllTrips()
 
-    @GetMapping("/{id}")
+    @GetMapping("/{tripId}")
     @Operation(
         summary = "Get trip by id",
         description = "Get trip by id",
@@ -65,7 +65,7 @@ class TripController(
         )
         ]
     )
-    fun getTripById(@PathVariable id: Long): TripDto = tripService.getTripById(id)
+    fun getByTripId(@PathVariable tripId: Long): TripDto = tripService.getByTripId(tripId)
 
     @GetMapping("/owner/{ownerId}")
     @Operation(
@@ -119,7 +119,7 @@ class TripController(
     fun createTrip(@RequestBody tripDto: TripDto): ResponseEntity<TripDto> =
         ResponseEntity.status(HttpStatus.CREATED).body(tripService.createTrip(tripDto))
 
-    @PutMapping("/{id}")
+    @PutMapping("/{tripId}")
     @Operation(
         summary = "Update trip",
         description = "Update trip",
@@ -142,13 +142,13 @@ class TripController(
             )
         ]
     )
-    fun updateTrip(@PathVariable id: Long, @RequestBody tripDto: TripDto): TripDto =
-        tripService.updateTrip(id, tripDto)
+    fun updateTrip(@PathVariable tripId: Long, @RequestBody tripDto: TripDto): TripDto =
+        tripService.updateTrip(tripId, tripDto)
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{tripId}")
     @Operation(
-        summary = "Delete trip",
-        description = "Delete trip",
+        summary = "Delete trip by tripId",
+        description = "Delete trip by tripId",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -168,8 +168,8 @@ class TripController(
             )
         ]
     )
-    fun deleteTrip(@PathVariable id: Long): ResponseEntity<Void> {
-        tripService.deleteTrip(id)
+    fun deleteTrip(@PathVariable tripId: Long): ResponseEntity<Void> {
+        tripService.deleteTrip(tripId)
         return ResponseEntity.noContent().build()
     }
 
@@ -196,8 +196,6 @@ class TripController(
             )
         ]
     )
-    fun getTripsByCollaborator(@PathVariable collaboratorId: String) : ResponseEntity<Void>{
+    fun getTripsByCollaborator(@PathVariable collaboratorId: String) : List<TripDto> =
         tripService.getTripsByCollaborator(collaboratorId)
-        return ResponseEntity.noContent().build()
-    }
 }

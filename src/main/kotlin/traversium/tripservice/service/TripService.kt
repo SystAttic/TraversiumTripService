@@ -20,11 +20,11 @@ class TripService(
     fun getAllTrips(): List<TripDto> =
         tripRepository.findAll().map { it.toDto() }
 
-    fun getTripById(id: Long): TripDto =
-        tripRepository.findById(id).orElseThrow { TripNotFoundException(id) }.toDto()
+    fun getByTripId(tripId: Long): TripDto =
+        tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }.toDto()
 
-    fun getTripsByOwner(owner: String): List<TripDto> =
-        tripRepository.findByOwner(owner).map { it.toDto() }
+    fun getTripsByOwner(ownerId: String): List<TripDto> =
+        tripRepository.findByOwner(ownerId).map { it.toDto() }
 
     fun createTrip(dto: TripDto): TripDto {
         val trip = tripRepository.save(dto.toTrip())
@@ -40,8 +40,8 @@ class TripService(
         return trip.toDto()
     }
 
-    fun deleteTrip(id: Long) {
-        val trip = tripRepository.findById(id).orElseThrow { TripNotFoundException(id) }
+    fun deleteTrip(tripId: Long) {
+        val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
 
         // Kafka event - Trip DELETE
         eventPublisher.publishEvent(
@@ -54,8 +54,8 @@ class TripService(
         tripRepository.delete(trip)
     }
 
-    fun updateTrip(id: Long, updated: TripDto): TripDto {
-        val existingTrip = tripRepository.findById(id).orElseThrow { TripNotFoundException(id) }
+    fun updateTrip(tripId: Long, updated: TripDto): TripDto {
+        val existingTrip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
         val mergedTrip = existingTrip.copy(
             title = updated.title,
             description = updated.description,
@@ -75,8 +75,8 @@ class TripService(
         return tripRepository.save(mergedTrip).toDto()
     }
 
-    fun getTripsByCollaborator(collaborator: String): List<TripDto>{
-        val trips = tripRepository.findByCollaborator(collaborator)
+    fun getTripsByCollaborator(collaboratorId: String): List<TripDto>{
+        val trips = tripRepository.findByCollaborator(collaboratorId)
         return trips.map { it.toDto() }
     }
 
