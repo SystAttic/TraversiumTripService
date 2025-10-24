@@ -1,12 +1,16 @@
 package traversium.tripservice.service
 
 import org.springframework.context.ApplicationEventPublisher
+import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import traversium.tripservice.db.model.Trip
 import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.TripNotFoundException
 import traversium.tripservice.db.repository.TripRepository
+import traversium.tripservice.dto.AlbumDto
+import traversium.tripservice.kafka.data.AlbumEvent
+import traversium.tripservice.kafka.data.AlbumEventType
 import traversium.tripservice.kafka.data.TripEvent
 import traversium.tripservice.kafka.data.TripEventType
 
@@ -34,7 +38,7 @@ class TripService(
             TripEvent(
                 eventType = TripEventType.TRIP_CREATED,
                 tripId = trip.tripId,
-                owner = trip.owner,
+                ownerId = trip.ownerId,
             )
         )
         return trip.toDto()
@@ -48,7 +52,7 @@ class TripService(
             TripEvent(
                 eventType = TripEventType.TRIP_DELETED,
                 tripId = trip.tripId,
-                owner = trip.owner,
+                ownerId = trip.ownerId,
             )
         )
         tripRepository.delete(trip)
@@ -68,7 +72,7 @@ class TripService(
             TripEvent(
                 eventType = TripEventType.TRIP_UPDATED,
                 tripId = updated.tripId,
-                owner = updated.owner,
+                ownerId = updated.ownerId,
             )
         )
 
@@ -78,6 +82,20 @@ class TripService(
     fun getTripsByCollaborator(collaboratorId: String): List<TripDto>{
         val trips = tripRepository.findByCollaborator(collaboratorId)
         return trips.map { it.toDto() }
+    }
+
+    fun addAlbumToTrip(tripId: Long, dto: AlbumDto) {
+        val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
+        trip.albums.add(dto.toAlbum())
+
+        tripRepository.save(trip)
+        eventPublisher.publishEvent(
+            AlbumEvent(
+                eventType = AlbumEventType.ALBUM_CREATED,
+                albumId = dto.albumId,
+                title = dto.title,
+            )
+        )
     }
 
     // TODO - dodaj (tudi na drugih Service) endpointe, ki so še potrebni

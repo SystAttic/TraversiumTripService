@@ -40,7 +40,8 @@ class TripController(
             )
         ]
     )
-    fun getAllTrips(): List<TripDto> = tripService.getAllTrips()
+    fun getAllTrips(): List<TripDto> =
+        tripService.getAllTrips()
 
     @GetMapping("/{tripId}")
     @Operation(
@@ -95,12 +96,12 @@ class TripController(
 
     @PostMapping
     @Operation(
-        summary = "Add trip",
-        description = "Add trip",
+        summary = "Create trip",
+        description = "Create trip",
         responses = [
             ApiResponse(
                 responseCode = "200",
-                description = "Trip successfully added",
+                description = "Trip successfully created",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = TripDto::class)
@@ -108,7 +109,7 @@ class TripController(
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "Trip could not be added",
+                description = "Trip could not be created",
             ),
             ApiResponse(
                 responseCode = "500",
