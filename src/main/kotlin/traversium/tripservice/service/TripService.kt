@@ -7,6 +7,7 @@ import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.TripNotFoundException
 import traversium.tripservice.db.repository.TripRepository
 import traversium.tripservice.dto.AlbumDto
+import traversium.tripservice.exceptions.TripAlreadyExistsException
 import traversium.tripservice.kafka.data.AlbumEvent
 import traversium.tripservice.kafka.data.AlbumEventType
 import traversium.tripservice.kafka.data.TripEvent
@@ -29,6 +30,10 @@ class TripService(
         tripRepository.findByOwnerId(ownerId).map { it.toDto() }
 
     fun createTrip(dto: TripDto): TripDto {
+        if (dto.ownerId == null || dto.title == null || dto.tripId != null) {
+            throw IllegalArgumentException("Owner ID and title cannot be null, new trip cannot have tripId")
+        }
+
         val trip = tripRepository.save(dto.toTrip())
 
         // Kafka event - Trip CREATE

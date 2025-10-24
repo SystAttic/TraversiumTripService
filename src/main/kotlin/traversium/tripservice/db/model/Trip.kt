@@ -34,7 +34,7 @@ data class Trip(
         ]
     )
     @Column(name = "collaborator_id")
-    val collaborators: Set<String> = emptySet(),
+    val collaborators: List<String> = emptyList(),
 
     /* ---- Viewers ---- */
     @ElementCollection(fetch = FetchType.LAZY)
@@ -43,7 +43,7 @@ data class Trip(
         joinColumns = [JoinColumn(name = "trip_id")]
     )
     @Column(name = "viewer_id")
-    val viewers: Set<String> = emptySet(),
+    val viewers: List<String> = emptyList(),
 
     /* ---- Albums ---- */
     @OneToMany(cascade = [(CascadeType.ALL)], fetch = FetchType.EAGER)
@@ -56,11 +56,11 @@ data class Trip(
             Index(name = "idx_trip_albums_album", columnList = "album_id")
         ]
     )
-    var albums: MutableSet<Album> = mutableSetOf(),
+    var albums: MutableList<Album> = mutableListOf(),
 ){
     companion object{
         const val TABLE_NAME = "trip"
     }
 
-    fun toDto() = TripDto(tripId, title, description, ownerId, coverPhotoUrl, collaborators, viewers, albums.map{it.toDto()}.toMutableSet())
+    fun toDto() = TripDto(tripId, title, description, ownerId, coverPhotoUrl, collaborators, viewers, albums.map{it.toDto()}.toMutableList())
 }

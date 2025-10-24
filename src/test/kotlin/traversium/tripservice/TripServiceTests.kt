@@ -34,8 +34,7 @@ class TripServiceTests @Autowired constructor(
         val trip3 = Trip(tripId = null, title = "Trip3", description = null, ownerId = "P3", coverPhotoUrl = "", collaborators = setOf("P2","P1"), viewers = emptySet())
 
         val savedTrip1 = tripRepository.save(trip1)
-        val savedTrip2 = tripRepository.save(trip2)
-        val savedTrip3 = tripRepository.save(trip3)
+
 
 
 //        val album1 = Album(albumId = null, trip = savedTrip1, title = "Album1 Tripa 1", description = "", media = emptySet())
@@ -47,7 +46,7 @@ class TripServiceTests @Autowired constructor(
             album2,
             album3,
         )
-//        val album4 = Album(albumId = null, trip = savedTrip2, title = "Album1 Tripa 2", description = "", media = emptySet())
+        val album4 = Album(albumId = null, title = "Album1 Tripa 2", description = "", media = emptySet())
 //        val album5 = Album(albumId = null, trip = savedTrip2, title = "Album2 Tripa 2", description = "", media = emptySet())
 //        val album6 = Album(albumId = null, trip = savedTrip2, title = "Album3 Tripa 2", description = "", media = emptySet())
 //        val albumsTrip2 = mutableSetOf(
@@ -84,11 +83,26 @@ class TripServiceTests @Autowired constructor(
 
 
         // Test - get trips by Owner ID
-        val found = tripRepository.findByOwnerId("P1")
-        val foundAlbum = albumRepository.findById(found[0].albums.first().albumId!!)
+        val found = tripRepository.findByOwnerId("P1").first()
+//        val foundAlbum = albumRepository.findById(found[0].albums.first().albumId!!)
 //        assertEquals("Album1 Tripa 1", foundAlbum.get().title)
-        assertEquals(1, found.count())
-        assertEquals(3, found[0].albums.count())
+        assertEquals(3, found.albums.count())
+        assertEquals(3, albumRepository.findAll().size)
+
+        found.apply { albums.add(album4) }
+        tripRepository.save(found)
+//        assertEquals(1, found.count())
+        val found1 = tripRepository.findByOwnerId("P1").first()
+        assertEquals(4, found1.albums.count())
+        assertEquals(4, albumRepository.findAll().size)
+
+        // updejti album pa poglej če se updejtal na tripu
+        val toUpdateAlbum = albumRepository.findById(1).get()
+        toUpdateAlbum.apply { title = "Updated Album1 Tripa 1" }
+        albumRepository.save(toUpdateAlbum)
+        val found2 = tripRepository.findByOwnerId("P1").first()
+        val updatedAlbum = found2.albums.find { it.albumId == 1L }
+        assertEquals("Updated Album1 Tripa 1", updatedAlbum!!.title)
 
         //TODO - test hitrosti iskanja po Tripih (by Collaborators)
         // naredi zanko za izdelavo userjev (npr. naredi temp_user in ga "ustvari" in dodaj v users[])

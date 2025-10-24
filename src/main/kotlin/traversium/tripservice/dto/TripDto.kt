@@ -8,9 +8,9 @@ data class TripDto(
     val description: String? = null,
     val ownerId: String?,
     val coverPhotoUrl: String? = null,
-    val collaborators: Set<String> = emptySet(),
-    val viewers: Set<String> = emptySet(),
-    val albums: Set<AlbumDto> = emptySet(),
+    val collaborators: List<String> = emptyList(),
+    val viewers: List<String> = emptyList(),
+    val albums: List<AlbumDto> = emptyList(),
 ) {
     fun toTrip() = Trip(
         tripId = tripId,
@@ -20,6 +20,6 @@ data class TripDto(
         coverPhotoUrl = coverPhotoUrl,
         collaborators = collaborators,
         viewers = viewers,
-        albums = albums.map { it.toAlbum() }.toMutableSet(),
+        albums = albums.map { it.toAlbum() }.toMutableList(),
     )
 }
