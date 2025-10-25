@@ -4,27 +4,32 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
+import org.apache.logging.log4j.kotlin.Logging
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import traversium.tripservice.dto.AlbumDto
 import traversium.tripservice.dto.TripDto
+import traversium.tripservice.exceptions.AlbumNotFoundException
+import traversium.tripservice.exceptions.TripAlreadyExistsException
+import traversium.tripservice.exceptions.TripNotFoundException
 import traversium.tripservice.service.TripService
 
 @RestController
-@RequestMapping("/trips")
+@RequestMapping("/rest/v1/trips")
 class TripController(
     private val tripService: TripService
-) {
+) : Logging {
 
     @GetMapping
     @Operation(
-        summary = "Get all trips",
-        description = "Get all trips",
+        summary = "Get all trips.",
+        description = "Get all trips.",
         responses = [
             ApiResponse(
                 responseCode = "200",
-                description = "Get all trips",
+                description = "All trips retrieved.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = TripDto::class)
@@ -32,25 +37,33 @@ class TripController(
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "No trips not found",
+                description = "No trips found.",
             ),
             ApiResponse(
                 responseCode = "500",
-                description = "Internal server error",
+                description = "Internal server error.",
             )
         ]
     )
-    fun getAllTrips(): List<TripDto> =
-        tripService.getAllTrips()
+    fun getAllTrips(): ResponseEntity<List<TripDto>> {
+        return try {
+            val trips = tripService.getAllTrips()
+            logger.info("Trips found.")
+            ResponseEntity.ok(trips)
+        } catch (_: TripNotFoundException){
+            logger.error("No trips found.")
+            ResponseEntity.notFound().build()
+        }
+    }
 
     @GetMapping("/{tripId}")
     @Operation(
-        summary = "Get trip by id",
-        description = "Get trip by id",
+        summary = "Get trip by tripId.",
+        description = "Get trip by tripId.",
         responses = [
             ApiResponse(
                 responseCode = "200",
-                description = "Get trip by id",
+                description = "Trip by tripId retrieved.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = TripDto::class)
@@ -58,24 +71,35 @@ class TripController(
             ),
         ApiResponse(
             responseCode = "404",
-            description = "No trips found",
+            description = "No trip by this tripId found.",
         ),
         ApiResponse(
             responseCode = "500",
-            description = "Internal server error",
+            description = "Internal server error.",
         )
         ]
     )
-    fun getByTripId(@PathVariable tripId: Long): TripDto = tripService.getByTripId(tripId)
+    fun getByTripId(
+        @PathVariable tripId: Long
+    ): ResponseEntity<TripDto> {
+        return try{
+            val trip = tripService.getByTripId(tripId)
+            logger.info("Trip $tripId found.")
+            ResponseEntity.ok(trip)
+        } catch (_: TripNotFoundException){
+            logger.info("Trip $tripId not found.")
+            ResponseEntity.notFound().build()
+        }
+    }
 
     @GetMapping("/owner/{ownerId}")
     @Operation(
-        summary = "Get trip by ownerId",
-        description = "Get trip by ownerId",
+        summary = "Get trip by ownerId.",
+        description = "Get trip by ownerId.",
         responses = [
             ApiResponse(
                 responseCode = "200",
-                description = "Get trip by ownerId",
+                description = "Trip by ownerId retrieved.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = TripDto::class)
@@ -83,25 +107,39 @@ class TripController(
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "No trips by this ownerId found",
+                description = "No trips by this ownerId found.",
+            ),
+            ApiResponse(
+                responseCode = "409",
+                description = "Bad request - invalid ownerId provided.",
             ),
             ApiResponse(
                 responseCode = "500",
-                description = "Internal server error",
+                description = "Internal server error.",
             )
         ]
     )
-    fun getTripsByOwner(@PathVariable ownerId: String): List<TripDto> =
-        tripService.getTripsByOwner(ownerId)
+    fun getTripsByOwner(
+        @PathVariable ownerId: String
+    ): ResponseEntity<List<TripDto>> {
+        return try {
+            val trips = tripService.getTripsByOwner(ownerId)
+            logger.info("Trips by owner $ownerId found.")
+            ResponseEntity.ok(trips)
+        } catch (_: TripNotFoundException){
+            logger.info("No trips by owner $ownerId found.")
+            ResponseEntity.notFound().build()
+        }
+    }
 
     @PostMapping
     @Operation(
-        summary = "Create trip",
-        description = "Create trip",
+        summary = "Create new trip.",
+        description = "Create new trip.",
         responses = [
             ApiResponse(
                 responseCode = "200",
-                description = "Trip successfully created",
+                description = "New trip successfully created.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = TripDto::class)
@@ -109,25 +147,41 @@ class TripController(
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "Trip could not be created",
+                description = "Bad request - invalid trip data provided.",
+            ),
+            ApiResponse(
+                responseCode = "409",
+                description = "Conflict - trip already exists.",
             ),
             ApiResponse(
                 responseCode = "500",
-                description = "Internal server error",
+                description = "Internal server error.",
             )
         ]
     )
-    fun createTrip(@RequestBody tripDto: TripDto): ResponseEntity<TripDto> =
-        ResponseEntity.status(HttpStatus.CREATED).body(tripService.createTrip(tripDto))
+    fun createTrip(
+        @RequestBody tripDto: TripDto
+    ): ResponseEntity<TripDto> {
+        return try {
+            val trip = tripService.createTrip(tripDto)
+            logger.info("Trip ${trip.tripId} created.")
+            ResponseEntity.ok(trip)
+        } catch (_: TripAlreadyExistsException) {
+            logger.info("Trip ${tripDto.tripId} already exists.")
+            ResponseEntity.status(HttpStatus.CONFLICT).build()
+        } catch (_: Exception){
+            ResponseEntity.badRequest().build()
+        }
+    }
 
     @PutMapping("/{tripId}")
     @Operation(
-        summary = "Update trip",
-        description = "Update trip",
+        summary = "Update trip by tripId.",
+        description = "Update trip by tripId.",
         responses = [
             ApiResponse(
                 responseCode = "200",
-                description = "Trip successfully updated",
+                description = "Trip successfully updated.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = TripDto::class)
@@ -135,53 +189,70 @@ class TripController(
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "Trip could not be updated",
+                description = "Bad request - Invalid trip data provided.",
             ),
             ApiResponse(
                 responseCode = "500",
-                description = "Internal server error",
+                description = "Internal server error.",
             )
         ]
     )
-    fun updateTrip(@PathVariable tripId: Long, @RequestBody tripDto: TripDto): TripDto =
-        tripService.updateTrip(tripId, tripDto)
+    fun updateTrip(
+        @PathVariable tripId: Long,
+        @RequestBody tripDto: TripDto
+    ): ResponseEntity<TripDto> {
+        return try {
+            val trip = tripService.updateTrip(tripId, tripDto)
+            logger.info("Trip ${trip.tripId} updated.")
+            ResponseEntity.ok(trip)
+        } catch (_: TripNotFoundException) {
+            logger.info("Trip ${tripDto.tripId} not found.")
+            ResponseEntity.notFound().build()
+        } catch (_: Exception){
+            ResponseEntity.badRequest().build()
+        }
+    }
 
     @DeleteMapping("/{tripId}")
     @Operation(
-        summary = "Delete trip by tripId",
-        description = "Delete trip by tripId",
+        summary = "Delete trip by tripId.",
+        description = "Delete trip by tripId.",
         responses = [
             ApiResponse(
                 responseCode = "200",
-                description = "Trip successfully deleted",
-                content = [Content(
-                    mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = TripDto::class)
-                )]
+                description = "Trip successfully deleted.",
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "No trips found",
+                description = "No trips by this tripId found.",
             ),
             ApiResponse(
                 responseCode = "500",
-                description = "Internal server error",
+                description = "Internal server error.",
             )
         ]
     )
-    fun deleteTrip(@PathVariable tripId: Long): ResponseEntity<Void> {
-        tripService.deleteTrip(tripId)
-        return ResponseEntity.noContent().build()
+    fun deleteTrip(
+        @PathVariable tripId: Long
+    ): ResponseEntity<Void> {
+        return try {
+            tripService.deleteTrip(tripId)
+            logger.info("Trip $tripId deleted.")
+            ResponseEntity.ok().build()
+        } catch (_: TripNotFoundException){
+            logger.info("Trip $tripId not found.")
+            ResponseEntity.notFound().build()
+        }
     }
 
-    @GetMapping("/{collaboratorId}")
+    @GetMapping("/collaborators/{collaboratorId}")
     @Operation(
-        summary = "Get trip by collaboratorId",
-        description = "Get trip by collaboratorId",
+        summary = "Get trip by collaboratorId.",
+        description = "Get trip by collaboratorId.",
         responses = [
             ApiResponse(
                 responseCode = "200",
-                description = "Get trip by collaboratorId",
+                description = "Trip by collaboratorId retrieved.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = TripDto::class)
@@ -189,7 +260,92 @@ class TripController(
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "No trips by this collaboratorId found",
+                description = "No trips by this user found.",
+            ),
+            ApiResponse(
+                responseCode = "500",
+                description = "Internal server error.",
+            )
+        ]
+    )
+    fun getTripsByCollaborator(
+        @PathVariable collaboratorId: String
+    ) : ResponseEntity<List<TripDto>> {
+        return try {
+            val trips = tripService.getTripsByCollaborator(collaboratorId)
+            logger.info("Trips by user $collaboratorId found.")
+            ResponseEntity.ok(trips)
+        } catch (_: TripNotFoundException) {
+            logger.info("No trips by user $collaboratorId found.")
+            ResponseEntity.notFound().build()
+        }
+    }
+
+    // TODO - addCollaboratorToTrip
+
+    // TODO - deleteCollaboratorFromTrip
+
+    // TODO - addViewerToTrip
+
+    // TODO - deleteViewerFromTrip
+
+    @GetMapping("/{tripId}/albums/{albumId}")
+    @Operation(
+        summary = "Get album by albumId from trip.",
+        description = "Get album by albumId from trip.",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Album by albumId retrieved from trip.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = AlbumDto::class)
+                )]
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "No albums found in this trip.",
+            ),
+            ApiResponse(
+                responseCode = "500",
+                description = "Internal server error.",
+            )
+        ]
+    )
+    fun getAlbumFromTrip(
+        @PathVariable tripId: Long,
+        @PathVariable albumId: Long
+    ) : ResponseEntity<AlbumDto> {
+        return try {
+            val trip = tripService.getAlbumFromTrip(tripId, albumId)
+            logger.info("Album $albumId retrieved from trip $trip.")
+            ResponseEntity.ok(trip)
+        } catch (_: AlbumNotFoundException) {
+            logger.info("No albums in trip $tripId found.")
+            ResponseEntity.notFound().build()
+        }
+    }
+
+    @PostMapping("/{tripId}/albums")
+    @Operation(
+        summary = "Add album to trip.",
+        description = "Add album to trip.",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Album successfully added to trip.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = TripDto::class)
+                )]
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "No trip found",
+            ),
+            ApiResponse(
+                responseCode = "409",
+                description = "Bad request - invalid album data provided",
             ),
             ApiResponse(
                 responseCode = "500",
@@ -197,6 +353,48 @@ class TripController(
             )
         ]
     )
-    fun getTripsByCollaborator(@PathVariable collaboratorId: String) : List<TripDto> =
-        tripService.getTripsByCollaborator(collaboratorId)
+    fun addAlbumToTrip(
+        @PathVariable tripId: Long,
+        dto: AlbumDto) : ResponseEntity<TripDto> {
+        return try {
+            val trip = tripService.addAlbumToTrip(tripId, dto)
+            logger.info("Album ${dto.albumId} added to trip $tripId.")
+            ResponseEntity.ok(trip)
+        } catch (_: TripNotFoundException) {
+            logger.info("Trip $tripId not found.")
+            ResponseEntity.notFound().build()
+        } catch (_: Exception) {
+            ResponseEntity.badRequest().build()
+        }
+    }
+
+    @DeleteMapping("/{tripId}/albums/{albumId}")
+    @Operation(
+        summary = "Delete album from trip by tripId.",
+        description = "Delete album from trip by tripId.",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Album successfully deleted from trip.",
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "No trip found.",
+            ),
+            ApiResponse(
+                responseCode = "409",
+                description = "Bad request - no album for this id found.",
+            )
+        ]
+    )
+    fun deleteAlbumFromTrip(@PathVariable tripId: Long, @PathVariable albumId: Long): ResponseEntity<Void> {
+        return try {
+            tripService.deleteAlbumFromTrip(tripId, albumId)
+            ResponseEntity.ok().build()
+        } catch (_: TripNotFoundException){
+            ResponseEntity.notFound().build()
+        } catch (_: Exception){
+            ResponseEntity.badRequest().build()
+        }
+    }
 }

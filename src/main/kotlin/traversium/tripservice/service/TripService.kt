@@ -7,7 +7,8 @@ import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.TripNotFoundException
 import traversium.tripservice.db.repository.TripRepository
 import traversium.tripservice.dto.AlbumDto
-import traversium.tripservice.exceptions.TripAlreadyExistsException
+import traversium.tripservice.exceptions.AlbumNotFoundException
+import traversium.tripservice.exceptions.TripWithoutAlbumsException
 import traversium.tripservice.kafka.data.AlbumEvent
 import traversium.tripservice.kafka.data.AlbumEventType
 import traversium.tripservice.kafka.data.TripEvent
@@ -87,11 +88,20 @@ class TripService(
         return trips.map { it.toDto() }
     }
 
-    fun addAlbumToTrip(tripId: Long, dto: AlbumDto) {
+    fun getAlbumFromTrip(tripId: Long, albumId: Long): AlbumDto {
+        val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
+        if(trip.albums.isEmpty())
+            throw TripWithoutAlbumsException(tripId)
+        else
+            return trip.albums.first { it.albumId == albumId }.toDto()
+    }
+
+
+    fun addAlbumToTrip(tripId: Long, dto: AlbumDto) : TripDto {
         val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
         trip.albums.add(dto.toAlbum())
 
-        tripRepository.save(trip)
+        // Kafka event - Album CREATE
         eventPublisher.publishEvent(
             AlbumEvent(
                 eventType = AlbumEventType.ALBUM_CREATED,
@@ -99,6 +109,26 @@ class TripService(
                 title = dto.title,
             )
         )
+        return tripRepository.save(trip).toDto()
+    }
+
+    fun deleteAlbumFromTrip(tripId: Long, albumId: Long) {
+        val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
+
+        if(trip.albums.any { it.albumId == albumId }) {
+            val album = trip.albums.find { it.albumId == albumId }
+
+            eventPublisher.publishEvent(
+                AlbumEvent(
+                    eventType = AlbumEventType.ALBUM_DELETED,
+                    albumId = album!!.albumId,
+                    title = album.title
+                )
+            )
+            trip.albums.remove(album)
+        }else
+            throw AlbumNotFoundException(albumId)
+
     }
 
     // TODO - dodaj (tudi na drugih Service) endpointe, ki so še potrebni
