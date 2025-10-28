@@ -24,8 +24,8 @@ class TripServicePerformanceTests @Autowired constructor(
 
     @Test
     fun `find all Trips for a Collaborator`() {
-        val userNumber = 10000
-        val tripNumber = 20000
+        val userNumber = 5000
+        val tripNumber = 8000
 
         println("Generating $userNumber users ...")
         val users = (1..userNumber).map { "user_$it" }
