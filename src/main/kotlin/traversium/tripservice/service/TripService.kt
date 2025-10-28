@@ -24,12 +24,8 @@ class TripService(
     fun getAllTrips(): List<TripDto> =
         tripRepository.findAll().map { it.toDto() }
 
-    @Transactional(readOnly = true)
     fun getByTripId(tripId: Long): TripDto {
         val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
-        trip.collaborators.size // init collaborators
-        trip.viewers.size // init viewers
-        trip.albums.size // init albums
         return trip.toDto()
     }
 
@@ -90,9 +86,7 @@ class TripService(
     }
 
     fun getTripsByCollaborator(collaboratorId: String): List<TripDto>{
-        val trips = tripRepository.findAll().filter { trip ->
-            trip.collaborators.contains(collaboratorId)
-        }
+        val trips = tripRepository.findByCollaborator(collaboratorId)
         return trips.map { it.toDto() }
     }
 
@@ -135,6 +129,11 @@ class TripService(
             trip.collaborators.remove(collaboratorId)
             tripRepository.save(trip)
         } else throw TripWithoutCollaboratorException(tripId,collaboratorId)
+    }
+
+    fun getTripsByViewer(viewerId: String): List<TripDto>{
+        val trips = tripRepository.findByViewer(viewerId)
+        return trips.map { it.toDto() }
     }
 
     fun addViewerToTrip(tripId: Long, viewerId: String) :TripDto {

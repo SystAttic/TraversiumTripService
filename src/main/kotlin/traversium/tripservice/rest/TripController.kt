@@ -281,12 +281,154 @@ class TripController(
         }
     }
 
-    // TODO - addCollaboratorToTrip
+    @PostMapping("/{tripId}/collaborators/{collaboratorId}")
+    @Operation(
+        summary = "Add collaborator to a trip.",
+        description = "Add collaborator to a trip.",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Trip successfully added.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = TripDto::class)
+                )]
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "No trip found.",
+            ),
+            ApiResponse(
+                responseCode = "500",
+                description = "Internal server error.",
+            )
+        ]
+    )
+    fun addCollaboratorToTrip(
+        @PathVariable tripId: Long,
+        @PathVariable collaboratorId: String
+    ) : ResponseEntity<TripDto> {
+        return try {
+            val trip = tripService.addCollaboratorToTrip(tripId, collaboratorId)
+            logger.info("Collaborator $collaboratorId successfully added to trip $tripId.")
+            ResponseEntity.ok(trip)
+        } catch (_: TripNotFoundException) {
+            logger.info("")
+            ResponseEntity.notFound().build()
+        }
+    }
 
-    // TODO - deleteCollaboratorFromTrip
+    @DeleteMapping("/{tripId}/collaborators/{collaboratorId}")
+    @Operation(
+        summary = "Remove collaborator from trip.",
+        description = "Remove collaborator from a trip.",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Trip successfully removed.",
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "No trip found.",
+            ),
+            ApiResponse(
+                responseCode = "409",
+                description = "Bad request - no collaborator found",
+            ),
+            ApiResponse(
+                responseCode = "500",
+                description = "Internal server error.",
+            )
+        ]
+    )
+    fun deleteCollaboratorFromTrip(
+        @PathVariable tripId: Long,
+        @PathVariable collaboratorId: String
+    ) : ResponseEntity<Void> {
+        return try {
+            tripService.deleteCollaboratorFromTrip(tripId, collaboratorId)
+            ResponseEntity.ok().build()
+        } catch (_: TripNotFoundException) {
+            logger.info("")
+            ResponseEntity.notFound().build()
+        } catch (_: Exception) {
+            logger.info("")
+            ResponseEntity.badRequest().build()
+        }
+    }
 
-    // TODO - addViewerToTrip
+    @GetMapping("/viewers/{viewerId}")
+    @Operation(
+        summary = "Get all trips for viewer ID.",
+        description = "Get all trips for viewer ID.",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Viewer successfully retrieved.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = TripDto::class)
+                )]
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "No trips found.",
+            ),
+            ApiResponse(
+                responseCode = "500",
+                description = "Internal server error.",
+            )
+        ]
+    )
+    fun getTripsByViewer(
+        @PathVariable viewerId: String,
+    ) : ResponseEntity<List<TripDto>> {
+        return try {
+            val trips = tripService.getTripsByViewer(viewerId)
+            logger.info("Trips by viewer $viewerId found.")
+            ResponseEntity.ok(trips)
+        } catch (_: TripNotFoundException) {
+            logger.info("No trips by viewer $viewerId found.")
+            ResponseEntity.notFound().build()
+        }
+    }
 
+    @PostMapping("/{tripId}/viewers/{viewerId}")
+    @Operation(
+        summary = "Add viewer to a trip.",
+        description = "Add viewer to a trip.",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Trip successfully added.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = TripDto::class)
+                )]
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "No trip found.",
+            ),
+            ApiResponse(
+                responseCode = "500",
+                description = "Internal server error.",
+            )
+        ]
+    )
+    fun addViewerToTrip(
+        @PathVariable tripId: Long,
+        @PathVariable viewerId: String
+    ) : ResponseEntity<TripDto> {
+        return try {
+            val trip = tripService.addViewerToTrip(tripId, viewerId)
+            logger.info("Viewer $viewerId successfully added to trip $tripId.")
+            ResponseEntity.ok(trip)
+        } catch (_: TripNotFoundException) {
+            logger.info("")
+            ResponseEntity.notFound().build()
+        }
+    }
     // TODO - deleteViewerFromTrip
 
     @GetMapping("/{tripId}/albums/{albumId}")

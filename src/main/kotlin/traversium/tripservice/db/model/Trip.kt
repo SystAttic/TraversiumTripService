@@ -24,7 +24,7 @@ data class Trip(
     val coverPhotoUrl: String? = null,
 
     /* ---- Collaborators / Editors ---- */
-    @ElementCollection(fetch = FetchType.LAZY)
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
         name = "trip_collaborators",
         joinColumns = [JoinColumn(name = "trip_id")],
@@ -37,7 +37,7 @@ data class Trip(
     val collaborators: MutableList<String> = mutableListOf(),
 
     /* ---- Viewers ---- */
-    @ElementCollection(fetch = FetchType.LAZY)
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
         name = "trip_viewers",
         joinColumns = [JoinColumn(name = "trip_id")]
