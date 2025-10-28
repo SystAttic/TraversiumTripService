@@ -1,14 +1,14 @@
 package traversium.tripservice.service
 
 import org.springframework.context.ApplicationEventPublisher
-import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import traversium.tripservice.db.model.Trip
 import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.TripNotFoundException
 import traversium.tripservice.db.repository.TripRepository
 import traversium.tripservice.dto.AlbumDto
+import traversium.tripservice.exceptions.AlbumNotFoundException
+import traversium.tripservice.exceptions.*
 import traversium.tripservice.kafka.data.AlbumEvent
 import traversium.tripservice.kafka.data.AlbumEventType
 import traversium.tripservice.kafka.data.TripEvent
@@ -24,13 +24,19 @@ class TripService(
     fun getAllTrips(): List<TripDto> =
         tripRepository.findAll().map { it.toDto() }
 
-    fun getByTripId(tripId: Long): TripDto =
-        tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }.toDto()
+    fun getByTripId(tripId: Long): TripDto {
+        val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
+        return trip.toDto()
+    }
 
     fun getTripsByOwner(ownerId: String): List<TripDto> =
-        tripRepository.findByOwner(ownerId).map { it.toDto() }
+        tripRepository.findByOwnerId(ownerId).map { it.toDto() }
 
     fun createTrip(dto: TripDto): TripDto {
+        if (dto.ownerId == null || dto.title == null || dto.tripId != null) {
+            throw IllegalArgumentException("Owner ID and title cannot be null, new trip cannot have tripId")
+        }
+
         val trip = tripRepository.save(dto.toTrip())
 
         // Kafka event - Trip CREATE
@@ -64,8 +70,8 @@ class TripService(
             title = updated.title,
             description = updated.description,
             coverPhotoUrl = updated.coverPhotoUrl ?: existingTrip.coverPhotoUrl,
-            collaborators = updated.collaborators,
-            viewers = updated.viewers
+            collaborators = updated.collaborators.toMutableList(),
+            viewers = updated.viewers.toMutableList(),
         )
         // Kafka event - Trip UPDATE
         eventPublisher.publishEvent(
@@ -84,11 +90,108 @@ class TripService(
         return trips.map { it.toDto() }
     }
 
-    fun addAlbumToTrip(tripId: Long, dto: AlbumDto) {
+    fun addCollaboratorToTrip(tripId: Long, collaboratorId: String): TripDto {
+        val trip = tripRepository.findById(tripId)
+            .orElseThrow { TripNotFoundException(tripId) }
+
+        if (trip.collaborators.contains(collaboratorId)) {
+            throw TripHasCollaboratorException(tripId, collaboratorId)
+        }
+
+        val updatedTrip = trip.copy(
+            collaborators = trip.collaborators.toMutableList().apply { add(collaboratorId) }
+        )
+
+        val saved = tripRepository.save(updatedTrip)
+
+        // Kafka event - Collaborator ADD
+        eventPublisher.publishEvent(
+            TripEvent(
+                eventType = TripEventType.COLLABORATOR_ADDED,
+                tripId = saved.tripId,
+                ownerId = saved.ownerId
+            )
+        )
+        return saved.toDto()
+    }
+    fun deleteCollaboratorFromTrip(tripId: Long, collaboratorId: String) {
+        val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
+        if (trip.collaborators.contains(collaboratorId)) {
+
+            // Kafka event - Collaborator DELETE
+            eventPublisher.publishEvent(
+                TripEvent(
+                    eventType = TripEventType.COLLABORATOR_DELETED,
+                    tripId = trip.tripId,
+                    ownerId = trip.ownerId,
+                )
+            )
+            trip.collaborators.remove(collaboratorId)
+            tripRepository.save(trip)
+        } else throw TripWithoutCollaboratorException(tripId,collaboratorId)
+    }
+
+    fun getTripsByViewer(viewerId: String): List<TripDto>{
+        val trips = tripRepository.findByViewer(viewerId)
+        return trips.map { it.toDto() }
+    }
+
+    fun addViewerToTrip(tripId: Long, viewerId: String) :TripDto {
+        val trip = tripRepository.findById(tripId)
+            .orElseThrow { TripNotFoundException(tripId) }
+
+        if (trip.viewers.contains(viewerId)) {
+            throw TripHasViewerException(tripId, viewerId)
+        }
+
+        val updatedTrip = trip.copy(
+            viewers = trip.viewers.toMutableList().apply { add(viewerId) }
+        )
+
+        val saved = tripRepository.save(updatedTrip)
+
+        // Kafka event - Viewer ADD
+        eventPublisher.publishEvent(
+            TripEvent(
+                eventType = TripEventType.VIEWER_ADDED,
+                tripId = saved.tripId,
+                ownerId = saved.ownerId
+            )
+        )
+        return saved.toDto()
+    }
+
+    fun deleteViewerFromTrip(tripId: Long, viewerId: String) {
+        val trip = tripRepository.findById(tripId)
+        .orElseThrow { TripNotFoundException(tripId) }
+        if (trip.viewers.contains(viewerId)) {
+            // Kafka event - Viewer DELETE
+            eventPublisher.publishEvent(
+                TripEvent(
+                    eventType = TripEventType.VIEWER_DELETED,
+                    tripId = trip.tripId,
+                    ownerId = trip.ownerId,
+                )
+            )
+            trip.viewers.remove(viewerId)
+            tripRepository.save(trip)
+        } else throw TripWithoutViewerException(tripId,viewerId)
+    }
+
+    fun getAlbumFromTrip(tripId: Long, albumId: Long): AlbumDto {
+        val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
+        if(trip.albums.isEmpty())
+            throw TripWithoutAlbumsException(tripId)
+        else
+            return trip.albums.first { it.albumId == albumId }.toDto()
+    }
+
+
+    fun addAlbumToTrip(tripId: Long, dto: AlbumDto) : TripDto {
         val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
         trip.albums.add(dto.toAlbum())
 
-        tripRepository.save(trip)
+        // Kafka event - Album CREATE
         eventPublisher.publishEvent(
             AlbumEvent(
                 eventType = AlbumEventType.ALBUM_CREATED,
@@ -96,6 +199,26 @@ class TripService(
                 title = dto.title,
             )
         )
+        return tripRepository.save(trip).toDto()
+    }
+
+    fun deleteAlbumFromTrip(tripId: Long, albumId: Long) {
+        val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
+
+        if(trip.albums.any { it.albumId == albumId }) {
+            val album = trip.albums.find { it.albumId == albumId }
+
+            eventPublisher.publishEvent(
+                AlbumEvent(
+                    eventType = AlbumEventType.ALBUM_DELETED,
+                    albumId = album!!.albumId,
+                    title = album.title
+                )
+            )
+            trip.albums.remove(album)
+        }else
+            throw AlbumNotFoundException(albumId)
+
     }
 
     // TODO - dodaj (tudi na drugih Service) endpointe, ki so še potrebni

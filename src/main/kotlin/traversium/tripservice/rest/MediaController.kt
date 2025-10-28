@@ -12,7 +12,7 @@ import traversium.tripservice.dto.MediaDto
 import traversium.tripservice.service.MediaService
 
 @RestController
-@RequestMapping("/media")
+@RequestMapping("/rest/v1/media")
 class MediaController(
     private val mediaService: MediaService
 ) {

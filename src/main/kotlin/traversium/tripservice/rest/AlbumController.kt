@@ -12,7 +12,7 @@ import traversium.tripservice.dto.AlbumDto
 import traversium.tripservice.service.AlbumService
 
 @RestController
-@RequestMapping("/albums/")
+@RequestMapping("/rest/v1/albums")
 class AlbumController(
     private val albumService: AlbumService
 ) {

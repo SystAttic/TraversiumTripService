@@ -6,5 +6,5 @@ data class TripEvent(
     val eventType: TripEventType,
     val timestamp: Instant = Instant.now(),
     val tripId: Long?,
-    val ownerId: String,
+    val ownerId: String?,
 )

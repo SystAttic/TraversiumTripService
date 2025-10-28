@@ -11,18 +11,14 @@ data class Album(
     @Column(name = "album_id", unique = true, nullable = false, updatable = false, length = 36)
     var albumId: Long? = null,
 
-    /*@ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "trip_id")
-    val trip: Trip? = null,*/
-
     @Column(name="title", nullable = false)
-    val title: String,
+    var title: String? = null,
 
     @Column(name = "description")
-    val description: String? = null,
+    var description: String? = null,
 
     @OneToMany(mappedBy = "album", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
-    val media: MutableSet<Media> = mutableSetOf()
+    var media: MutableList<Media> = mutableListOf()
 ) {
     companion object {
         const val TABLE_NAME = "album"
@@ -32,8 +28,7 @@ data class Album(
         albumId = albumId,
         title = title,
         description = description,
-        //tripId = trip!!.tripId,
-        media = media.map { it.toDto() }.toMutableSet()
+        media = media.map { it.toDto() }.toMutableList()
     )
 
 }

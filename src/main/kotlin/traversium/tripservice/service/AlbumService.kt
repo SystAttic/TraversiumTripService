@@ -30,24 +30,20 @@ class AlbumService(
             .toDto()
 
     fun createAlbum(tripId: Long, dto: AlbumDto): AlbumDto {
-        if(!tripRepository.findById(tripId).isPresent){
-            throw TripNotFoundException(tripId)
+        val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }.apply {
+            albums.add(dto.toAlbum())
         }
-        val album = Album(
-            title = dto.title,
-            description = dto.description,
-        )
+
+        tripRepository.save(trip)
+
         // Kafka event - Album CREATE
         eventPublisher.publishEvent(
             AlbumEvent(
                 eventType = AlbumEventType.ALBUM_CREATED,
-                albumId = album.albumId,
-                title = album.title,
+                albumId = dto.albumId,
+                title = dto.title,
             )
         )
-
-        albumRepository.save(album).toDto()
-        tripService.addAlbumToTrip(tripId, dto)
 
         return dto
     }
@@ -59,7 +55,7 @@ class AlbumService(
         val updatedAlbum = existingAlbum.copy(
             title = dto.title,
             description = dto.description,
-            media = dto.media.map { it.toMedia() }.toMutableSet(),
+            media = dto.media.map { it.toMedia() }.toMutableList(),
         )
         // Kafka event - Album UPDATE
         eventPublisher.publishEvent(
