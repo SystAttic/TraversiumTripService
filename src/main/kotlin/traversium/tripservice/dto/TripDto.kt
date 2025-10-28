@@ -18,8 +18,8 @@ data class TripDto(
         description = description,
         ownerId = ownerId,
         coverPhotoUrl = coverPhotoUrl,
-        collaborators = collaborators,
-        viewers = viewers,
+        collaborators = collaborators.toMutableList(),
+        viewers = viewers.toMutableList(),
         albums = albums.map { it.toAlbum() }.toMutableList(),
     )
 }

@@ -34,7 +34,7 @@ data class Trip(
         ]
     )
     @Column(name = "collaborator_id")
-    val collaborators: List<String> = emptyList(),
+    val collaborators: MutableList<String> = mutableListOf(),
 
     /* ---- Viewers ---- */
     @ElementCollection(fetch = FetchType.LAZY)
@@ -43,7 +43,7 @@ data class Trip(
         joinColumns = [JoinColumn(name = "trip_id")]
     )
     @Column(name = "viewer_id")
-    val viewers: List<String> = emptyList(),
+    val viewers: MutableList<String> = mutableListOf(),
 
     /* ---- Albums ---- */
     @OneToMany(cascade = [(CascadeType.ALL)], fetch = FetchType.EAGER)
