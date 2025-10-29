@@ -431,7 +431,38 @@ class TripController(
             ResponseEntity.notFound().build()
         }
     }
-    // TODO - deleteViewerFromTrip
+
+    @DeleteMapping("/{tripId}/viewers/{viewerId}")
+    @Operation(
+        summary = "Remove viewer from a trip.",
+        description = "Remove viewer from a trip.",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Viewer successfully removed from trip.",
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "No trip found.",
+            ),
+            ApiResponse(
+                responseCode = "500",
+                description = "Internal server error.",
+            )
+        ]
+    )
+    fun deleteViewerToTrip(
+        @PathVariable tripId: Long,
+        @PathVariable viewerId: String,
+    ) : ResponseEntity<Void> {
+        return try {
+            tripService.deleteViewerFromTrip(tripId, viewerId)
+            logger.info("Viewer $viewerId successfully removed from trip $tripId.")
+            ResponseEntity.ok().build()
+        } catch (_: TripNotFoundException) {
+            ResponseEntity.notFound().build()
+        }
+    }
 
     @GetMapping("/{tripId}/albums/{albumId}")
     @Operation(
