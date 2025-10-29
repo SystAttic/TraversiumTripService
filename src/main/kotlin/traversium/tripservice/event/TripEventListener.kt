@@ -42,14 +42,14 @@ class TripEventListener(
             .get(kafkaProperties.clientConfirmationTimeout, TimeUnit.SECONDS)
     }
 }
-@Component
-class UserBlockListener(
-    private val tripCleanupService: TripCleanupService
-) {
-
-    @KafkaListener(topics = ["user-block-events"], groupId = "trip-service")
-    fun handleUserBlocked(event: UserBlockedEvent) {
-        println("Received user-block event: $event")
-        tripCleanupService.removeBlockedUserRelations(event.blockerId, event.blockedId)
-    }
-}
+//@Component
+//class UserBlockListener(
+//    private val tripCleanupService: TripCleanupService
+//) {
+//
+//    @KafkaListener(topics = ["user-block-events"], groupId = "trip-service")
+//    fun handleUserBlocked(event: UserBlockedEvent) {
+//        println("Received user-block event: $event")
+//        tripCleanupService.removeBlockedUserRelations(event.blockerId, event.blockedId)
+//    }
+//}
