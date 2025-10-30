@@ -208,6 +208,7 @@ class TripService(
         if(trip.albums.any { it.albumId == albumId }) {
             val album = trip.albums.find { it.albumId == albumId }
 
+            // Kafka event - Album DELETE
             eventPublisher.publishEvent(
                 AlbumEvent(
                     eventType = AlbumEventType.ALBUM_DELETED,

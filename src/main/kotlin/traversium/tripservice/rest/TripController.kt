@@ -190,8 +190,12 @@ class TripController(
                 )]
             ),
             ApiResponse(
-                responseCode = "400",
-                description = "Bad request - Invalid trip data provided.",
+                responseCode = "404",
+                description = "Trip not found.",
+            ),
+            ApiResponse(
+                responseCode = "409",
+                description = "Bad request - invalid trip data provided.",
             ),
             ApiResponse(
                 responseCode = "500",
