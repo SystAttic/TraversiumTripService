@@ -4,6 +4,7 @@ class TripNotFoundException(id: Long) : RuntimeException("Trip with ID $id not f
 class TripAlreadyExistsException(id: Long) : RuntimeException("Trip with ID '$id' already exists")
 class TripWithoutAlbumsException(id: Long) : RuntimeException("Trip with ID '$id' has no albums")
 
+class InvalidTripDataException() : RuntimeException("Invalid trip data")
 class TripWithoutCollaboratorException(tripId: Long, collaboratorId: String) : RuntimeException("Trip $tripId has no collaborator $collaboratorId.")
 class TripHasCollaboratorException(tripId: Long, collaboratorId: String) : RuntimeException("Collaborator with ID '$collaboratorId' already exists in trip with ID $tripId.")
 

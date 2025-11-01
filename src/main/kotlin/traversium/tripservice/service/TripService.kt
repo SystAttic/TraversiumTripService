@@ -32,6 +32,7 @@ class TripService(
     fun getTripsByOwner(ownerId: String): List<TripDto> =
         tripRepository.findByOwnerId(ownerId).map { it.toDto() }
 
+    @Transactional
     fun createTrip(dto: TripDto): TripDto {
         if (dto.ownerId == null || dto.title == null || dto.tripId != null) {
             throw IllegalArgumentException("Owner ID and title cannot be null, new trip cannot have tripId")
@@ -50,6 +51,7 @@ class TripService(
         return trip.toDto()
     }
 
+    @Transactional
     fun deleteTrip(tripId: Long) {
         val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
 
@@ -64,8 +66,12 @@ class TripService(
         tripRepository.delete(trip)
     }
 
-    fun updateTrip(tripId: Long, updated: TripDto): TripDto {
-        val existingTrip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
+    @Transactional
+    fun updateTrip(updated: TripDto): TripDto {
+        if(updated.tripId == null)
+            throw InvalidTripDataException()
+
+        val existingTrip = tripRepository.findById(updated.tripId).orElseThrow { TripNotFoundException(updated.tripId) }
         val mergedTrip = existingTrip.copy(
             title = updated.title,
             description = updated.description,
@@ -90,6 +96,7 @@ class TripService(
         return trips.map { it.toDto() }
     }
 
+    @Transactional
     fun addCollaboratorToTrip(tripId: Long, collaboratorId: String): TripDto {
         val trip = tripRepository.findById(tripId)
             .orElseThrow { TripNotFoundException(tripId) }
@@ -114,6 +121,8 @@ class TripService(
         )
         return saved.toDto()
     }
+
+    @Transactional
     fun deleteCollaboratorFromTrip(tripId: Long, collaboratorId: String) {
         val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
         if (trip.collaborators.contains(collaboratorId)) {
@@ -136,6 +145,7 @@ class TripService(
         return trips.map { it.toDto() }
     }
 
+    @Transactional
     fun addViewerToTrip(tripId: Long, viewerId: String) :TripDto {
         val trip = tripRepository.findById(tripId)
             .orElseThrow { TripNotFoundException(tripId) }
@@ -161,6 +171,7 @@ class TripService(
         return saved.toDto()
     }
 
+    @Transactional
     fun deleteViewerFromTrip(tripId: Long, viewerId: String) {
         val trip = tripRepository.findById(tripId)
         .orElseThrow { TripNotFoundException(tripId) }
@@ -186,7 +197,7 @@ class TripService(
             return trip.albums.first { it.albumId == albumId }.toDto()
     }
 
-
+    @Transactional
     fun addAlbumToTrip(tripId: Long, dto: AlbumDto) : TripDto {
         val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
         trip.albums.add(dto.toAlbum())
@@ -202,6 +213,7 @@ class TripService(
         return tripRepository.save(trip).toDto()
     }
 
+    @Transactional
     fun deleteAlbumFromTrip(tripId: Long, albumId: Long) {
         val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
 

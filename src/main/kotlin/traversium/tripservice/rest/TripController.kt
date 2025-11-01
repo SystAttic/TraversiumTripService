@@ -176,7 +176,7 @@ class TripController(
         }
     }
 
-    @PutMapping("/{tripId}")
+    @PutMapping()
     @Operation(
         summary = "Update trip by tripId.",
         description = "Update trip by tripId.",
@@ -200,11 +200,10 @@ class TripController(
         ]
     )
     fun updateTrip(
-        @PathVariable tripId: Long,
         @RequestBody tripDto: TripDto
     ): ResponseEntity<TripDto> {
         return try {
-            val trip = tripService.updateTrip(tripId, tripDto)
+            val trip = tripService.updateTrip( tripDto)
             logger.info("Trip ${trip.tripId} updated.")
             ResponseEntity.ok(trip)
         } catch (_: TripNotFoundException) {
@@ -562,7 +561,10 @@ class TripController(
             )
         ]
     )
-    fun deleteAlbumFromTrip(@PathVariable tripId: Long, @PathVariable albumId: Long): ResponseEntity<Void> {
+    fun deleteAlbumFromTrip(
+        @PathVariable tripId: Long,
+        @PathVariable albumId: Long
+    ): ResponseEntity<Void> {
         return try {
             tripService.deleteAlbumFromTrip(tripId, albumId)
             ResponseEntity.ok().build()
