@@ -17,8 +17,16 @@ data class Album(
     @Column(name = "description")
     var description: String? = null,
 
-    @OneToMany(mappedBy = "album", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
-    var media: MutableList<Media> = mutableListOf()
+    @OneToMany(cascade = [(CascadeType.ALL)], fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "album_media",
+        joinColumns = [JoinColumn(name = "album_id")],
+        inverseJoinColumns = [JoinColumn(name = "media_id")],
+        indexes = [
+            Index(name = "idx_album_media_albums", columnList = "album_id"),
+            Index(name = "idx_album_media_media", columnList = "media_id")
+        ]
+    )    var media: MutableList<Media> = mutableListOf()
 ) {
     companion object {
         const val TABLE_NAME = "album"

@@ -31,12 +31,8 @@ class AlbumController(
                 )]
             ),
             ApiResponse(
-                responseCode = "400",
-                description = "Bad request"
-            ),
-            ApiResponse(
                 responseCode = "404",
-                description = "Not found"
+                description = "No albums found"
             ),
             ApiResponse(
                 responseCode = "500",

@@ -11,10 +11,6 @@ data class Media(
     @Column(name = "media_id", unique = true, nullable = false, updatable = false, length = 36)
     val mediaId: Long? = null,
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "album_id")
-    val album: Album? = null,
-
     @Column(name= "path_url", nullable = false)
     val pathUrl: String, // reference from File Storage Service
 
