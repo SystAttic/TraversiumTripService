@@ -92,7 +92,7 @@ class TripService(
     }
 
     fun getTripsByCollaborator(collaboratorId: String): List<TripDto>{
-        val trips = tripRepository.findByCollaborator(collaboratorId)
+        val trips = tripRepository.findByCollaboratorId(collaboratorId)
         return trips.map { it.toDto() }
     }
 
@@ -141,7 +141,7 @@ class TripService(
     }
 
     fun getTripsByViewer(viewerId: String): List<TripDto>{
-        val trips = tripRepository.findByViewer(viewerId)
+        val trips = tripRepository.findByViewerId(viewerId)
         return trips.map { it.toDto() }
     }
 
@@ -231,6 +231,23 @@ class TripService(
         }else
             throw AlbumNotFoundException(albumId)
 
+    }
+
+    @Transactional
+    fun removeBlockedUserRelations(blockerId: String, blockedId: String) : String {
+        val ownedTrips = tripRepository.findByOwnerId(blockerId)
+        ownedTrips.forEach { trip ->
+            val changed = trip.collaborators.remove(blockedId) or trip.viewers.remove(blockedId)
+            if (changed) tripRepository.save(trip)
+        }
+
+        val blockedTrips = tripRepository.findByOwnerId(blockedId)
+        blockedTrips.forEach { trip ->
+            val changed = trip.collaborators.remove(blockerId) or trip.viewers.remove(blockerId)
+            if (changed) tripRepository.save(trip)
+        }
+
+        return "Removed blocked user relations from trips."
     }
 
     // TODO - dodaj (tudi na drugih Service) endpointe, ki so še potrebni

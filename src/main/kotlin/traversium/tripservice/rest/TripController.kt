@@ -14,14 +14,12 @@ import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.AlbumNotFoundException
 import traversium.tripservice.exceptions.TripAlreadyExistsException
 import traversium.tripservice.exceptions.TripNotFoundException
-import traversium.tripservice.service.TripCleanupService
 import traversium.tripservice.service.TripService
 
 @RestController
 @RequestMapping("/rest/v1/trips")
 class TripController(
     private val tripService: TripService,
-    private val tripCleanupService: TripCleanupService
 ) : Logging {
 
     @GetMapping
@@ -575,39 +573,39 @@ class TripController(
         }
     }
 
-    @PostMapping("/block/{blockerId}/{blockedId}")
-    @Operation(
-        summary = "Remove blocked user relations from trips.",
-        description = "Removes all viewer and collaborator connections between a blocker and a blocked user. " +
-                "Used when one user blocks another across all trips.",
-        responses = [
-            ApiResponse(
-                responseCode = "200",
-                description = "User relations successfully removed."
-            ),
-            ApiResponse(
-                responseCode = "400",
-                description = "Invalid request - missing or invalid user IDs."
-            ),
-            ApiResponse(
-                responseCode = "500",
-                description = "Internal server error."
-            )
-        ]
-    )
-    fun removeBlockedUserRelations(
-        @PathVariable blockerId: String,
-        @PathVariable blockedId: String
-    ): ResponseEntity<String> {
-        return try {
-            tripCleanupService.removeBlockedUserRelations(blockerId, blockedId)
-            logger.info("Removed blocked user relations between $blockerId and $blockedId")
-            ResponseEntity.ok("Relations between $blockerId and $blockedId successfully removed.")
-        } catch (e: Exception) {
-            logger.error("Failed to remove blocked user relations between $blockerId and $blockedId", e)
-            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Failed to remove user relations: ${e.message}")
-        }
-    }
+//    @PostMapping("/block/{blockerId}/{blockedId}")
+//    @Operation(
+//        summary = "Remove blocked user relations from trips.",
+//        description = "Removes all viewer and collaborator connections between a blocker and a blocked user. " +
+//                "Used when one user blocks another across all trips.",
+//        responses = [
+//            ApiResponse(
+//                responseCode = "200",
+//                description = "User relations successfully removed."
+//            ),
+//            ApiResponse(
+//                responseCode = "400",
+//                description = "Invalid request - missing or invalid user IDs."
+//            ),
+//            ApiResponse(
+//                responseCode = "500",
+//                description = "Internal server error."
+//            )
+//        ]
+//    )
+//    fun removeBlockedUserRelations(
+//        @PathVariable blockerId: String,
+//        @PathVariable blockedId: String
+//    ): ResponseEntity<String> {
+//        return try {
+//            tripCleanupService.removeBlockedUserRelations(blockerId, blockedId)
+//            logger.info("Removed blocked user relations between $blockerId and $blockedId")
+//            ResponseEntity.ok("Relations between $blockerId and $blockedId successfully removed.")
+//        } catch (e: Exception) {
+//            logger.error("Failed to remove blocked user relations between $blockerId and $blockedId", e)
+//            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                .body("Failed to remove user relations: ${e.message}")
+//        }
+//    }
 
 }

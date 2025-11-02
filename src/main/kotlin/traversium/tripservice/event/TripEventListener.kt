@@ -1,7 +1,6 @@
 package traversium.tripservice.event
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.event.TransactionPhase
@@ -10,8 +9,6 @@ import traversium.tripservice.kafka.KafkaProperties
 import traversium.tripservice.kafka.data.AlbumEvent
 import traversium.tripservice.kafka.data.MediaEvent
 import traversium.tripservice.kafka.data.TripEvent
-import traversium.tripservice.kafka.data.UserBlockedEvent
-import traversium.tripservice.service.TripCleanupService
 import java.util.concurrent.TimeUnit
 
 /**
