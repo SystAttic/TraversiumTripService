@@ -6,5 +6,5 @@ data class MediaEvent(
     val eventType: MediaEventType,
     val timestamp: Instant = Instant.now(),
     val mediaId: Long?,
-    val pathUrl: String
+    val pathUrl: String?
 )
