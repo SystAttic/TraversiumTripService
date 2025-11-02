@@ -28,6 +28,7 @@ class AlbumService(
             .orElseThrow { AlbumNotFoundException(albumId) }
             .toDto()
 
+    @Transactional
     fun createAlbum(dto: AlbumDto): AlbumDto {
         if (dto.title == null || dto.albumId != null) {
             throw IllegalArgumentException("Title cannot be null, new album cannot have albumId")
@@ -46,14 +47,14 @@ class AlbumService(
         return album.toDto()
     }
 
+    @Transactional
     fun updateAlbum(albumId: Long, dto: AlbumDto): AlbumDto {
         val existingAlbum = albumRepository.findById(albumId)
             .orElseThrow { AlbumNotFoundException(albumId) }
 
         val updatedAlbum = existingAlbum.copy(
-            title = dto.title,
-            description = dto.description,
-            media = dto.media.map { it.toMedia() }.toMutableList(),
+            title = dto.title ?: existingAlbum.title,
+            description = dto.description ?: existingAlbum.description,
         )
         // Kafka event - Album UPDATE
         eventPublisher.publishEvent(
@@ -66,6 +67,7 @@ class AlbumService(
         return albumRepository.save(updatedAlbum).toDto()
     }
 
+    @Transactional
     fun deleteAlbum(albumId: Long) {
         val album = albumRepository.findById(albumId)
             .orElseThrow { AlbumNotFoundException(albumId) }
@@ -80,6 +82,7 @@ class AlbumService(
         albumRepository.delete(album)
     }
 
+
     fun getMediaFromAlbum(albumId: Long, mediaId: Long): MediaDto {
         val album = albumRepository.findById(albumId).orElseThrow { AlbumNotFoundException(albumId) }
         if(album.media.isEmpty())
@@ -88,6 +91,7 @@ class AlbumService(
             return album.media.first{ it.mediaId == mediaId }.toDto()
     }
 
+    @Transactional
     fun addMediaToAlbum(albumId: Long, dto: MediaDto) : AlbumDto {
         val album = albumRepository.findById(albumId).orElseThrow{ AlbumNotFoundException(albumId) }
         album.media.add(dto.toMedia())
@@ -104,6 +108,7 @@ class AlbumService(
         return albumRepository.save(album).toDto()
     }
 
+    @Transactional
     fun deleteMediaFromAlbum(albumId: Long, mediaId: Long) {
         val album = albumRepository.findById(albumId).orElseThrow { AlbumNotFoundException(albumId) }
 
@@ -120,6 +125,7 @@ class AlbumService(
                 )
             )
             album.media.remove(media)
+            albumRepository.save(album)
         } else
             throw AlbumWithoutMediaException(albumId)
     }
