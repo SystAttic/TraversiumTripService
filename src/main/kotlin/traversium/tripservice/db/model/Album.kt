@@ -17,7 +17,7 @@ data class Album(
     @Column(name = "description")
     var description: String? = null,
 
-    @OneToMany(cascade = [(CascadeType.ALL)], fetch = FetchType.EAGER)
+    @OneToMany(cascade = [(CascadeType.ALL)], orphanRemoval = true, fetch = FetchType.EAGER)
     @JoinTable(
         name = "album_media",
         joinColumns = [JoinColumn(name = "album_id")],
