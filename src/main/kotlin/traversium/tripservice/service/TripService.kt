@@ -18,7 +18,7 @@ import traversium.tripservice.kafka.data.TripEventType
 @Transactional
 class TripService(
     private val tripRepository: TripRepository,
-    private val eventPublisher: ApplicationEventPublisher
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
 
     fun getAllTrips(): List<TripDto> =
@@ -73,11 +73,9 @@ class TripService(
 
         val existingTrip = tripRepository.findById(updated.tripId).orElseThrow { TripNotFoundException(updated.tripId) }
         val mergedTrip = existingTrip.copy(
-            title = updated.title,
-            description = updated.description,
-            coverPhotoUrl = updated.coverPhotoUrl ?: existingTrip.coverPhotoUrl,
-            collaborators = updated.collaborators.toMutableList(),
-            viewers = updated.viewers.toMutableList(),
+            title = updated.title ?: existingTrip.title,
+            description = updated.description ?: existingTrip.description,
+            coverPhotoUrl = updated.coverPhotoUrl ?: existingTrip.coverPhotoUrl
         )
         // Kafka event - Trip UPDATE
         eventPublisher.publishEvent(
@@ -229,6 +227,7 @@ class TripService(
                 )
             )
             trip.albums.remove(album)
+            tripRepository.save(trip)
         }else
             throw AlbumNotFoundException(albumId)
 

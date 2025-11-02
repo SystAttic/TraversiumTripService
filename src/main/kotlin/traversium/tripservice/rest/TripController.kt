@@ -13,7 +13,11 @@ import traversium.tripservice.dto.AlbumDto
 import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.AlbumNotFoundException
 import traversium.tripservice.exceptions.TripAlreadyExistsException
+import traversium.tripservice.exceptions.TripHasCollaboratorException
+import traversium.tripservice.exceptions.TripHasViewerException
 import traversium.tripservice.exceptions.TripNotFoundException
+import traversium.tripservice.exceptions.TripWithoutCollaboratorException
+import traversium.tripservice.exceptions.TripWithoutViewerException
 import traversium.tripservice.service.TripCleanupService
 import traversium.tripservice.service.TripService
 
@@ -176,7 +180,7 @@ class TripController(
         }
     }
 
-    @PutMapping()
+    @PutMapping
     @Operation(
         summary = "Update trip by tripId.",
         description = "Update trip by tripId.",
@@ -293,7 +297,7 @@ class TripController(
         responses = [
             ApiResponse(
                 responseCode = "200",
-                description = "Trip successfully added.",
+                description = "Collaborator successfully added.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = TripDto::class)
@@ -302,6 +306,10 @@ class TripController(
             ApiResponse(
                 responseCode = "404",
                 description = "No trip found.",
+            ),
+            ApiResponse(
+                responseCode = "409",
+                description = "Conflict - collaborator already exists in trip."
             ),
             ApiResponse(
                 responseCode = "500",
@@ -318,8 +326,11 @@ class TripController(
             logger.info("Collaborator $collaboratorId successfully added to trip $tripId.")
             ResponseEntity.ok(trip)
         } catch (_: TripNotFoundException) {
-            logger.info("")
+            logger.info("Trip $tripId not found.")
             ResponseEntity.notFound().build()
+        } catch (_: TripHasCollaboratorException) {
+            logger.info("Collaborator with ID $collaboratorId already exists in trip $tripId.")
+            ResponseEntity.status(HttpStatus.CONFLICT).build()
         }
     }
 
@@ -330,7 +341,7 @@ class TripController(
         responses = [
             ApiResponse(
                 responseCode = "200",
-                description = "Trip successfully removed.",
+                description = "Collaborator successfully removed.",
             ),
             ApiResponse(
                 responseCode = "404",
@@ -354,10 +365,10 @@ class TripController(
             tripService.deleteCollaboratorFromTrip(tripId, collaboratorId)
             ResponseEntity.ok().build()
         } catch (_: TripNotFoundException) {
-            logger.info("")
+            logger.info("No trip $tripId found.")
             ResponseEntity.notFound().build()
-        } catch (_: Exception) {
-            logger.info("")
+        } catch (_: TripWithoutCollaboratorException) {
+            logger.info("No collaborator $collaboratorId in trip $tripId found.")
             ResponseEntity.badRequest().build()
         }
     }
@@ -378,6 +389,10 @@ class TripController(
             ApiResponse(
                 responseCode = "404",
                 description = "No trips found.",
+            ),
+            ApiResponse(
+                responseCode = "409",
+                description = "",
             ),
             ApiResponse(
                 responseCode = "500",
@@ -416,6 +431,10 @@ class TripController(
                 description = "No trip found.",
             ),
             ApiResponse(
+                responseCode = "409",
+                description = "Conflict - viewer already exists",
+            ),
+            ApiResponse(
                 responseCode = "500",
                 description = "Internal server error.",
             )
@@ -430,8 +449,11 @@ class TripController(
             logger.info("Viewer $viewerId successfully added to trip $tripId.")
             ResponseEntity.ok(trip)
         } catch (_: TripNotFoundException) {
-            logger.info("")
+            logger.info("Trip $tripId not found.")
             ResponseEntity.notFound().build()
+        } catch (_: TripHasViewerException) {
+            logger.info("Viewer with ID $viewerId already exists in trip $tripId.")
+            ResponseEntity.status(HttpStatus.CONFLICT).build()
         }
     }
 
@@ -449,6 +471,10 @@ class TripController(
                 description = "No trip found.",
             ),
             ApiResponse(
+                responseCode = "409",
+                description = "Bad request - no viewer found.",
+            ),
+            ApiResponse(
                 responseCode = "500",
                 description = "Internal server error.",
             )
@@ -463,7 +489,11 @@ class TripController(
             logger.info("Viewer $viewerId successfully removed from trip $tripId.")
             ResponseEntity.ok().build()
         } catch (_: TripNotFoundException) {
+            logger.info("Trip $tripId not found.")
             ResponseEntity.notFound().build()
+        } catch (_: TripWithoutViewerException) {
+            logger.info("No viewer $viewerId found in trip $tripId.")
+            ResponseEntity.badRequest().build()
         }
     }
 
