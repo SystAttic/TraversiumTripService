@@ -1,5 +1,6 @@
 package traversium.tripservice
 
+import org.apache.logging.log4j.kotlin.logger
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -28,9 +29,9 @@ class TripServicePerformanceTests @Autowired constructor(
         val userNumber = 5000
         val tripNumber = 8000
 
-        println("Generating $userNumber users ...")
+        logger.info("Generating $userNumber users ...")
         val users = (1..userNumber).map { "user_$it" }
-        println("Generating $tripNumber trips ...")
+        logger.info("Generating $tripNumber trips ...")
         val trips = (1..tripNumber).map { id ->
             TripDto(
                 tripId = null,
@@ -44,17 +45,17 @@ class TripServicePerformanceTests @Autowired constructor(
             )
         }
 
-        println("Creating trips ...")
+        logger.info("Creating trips ...")
         trips.forEach { tripService.createTrip(it) }
 
         val targetUser = users.random()
-        println("Searching for user $targetUser ...")
+        logger.info("Searching for user $targetUser ...")
         val queryTime = measureTimeMillis {
             val found = tripService.getTripsByCollaborator(targetUser)
-            println("Found ${found.size} trips for $targetUser")
+            logger.info("Found ${found.size} trips for $targetUser")
         }
 
-        println("Query executed in $queryTime ms")
+        logger.info("Query executed in $queryTime ms")
         assertTrue(queryTime < 1000, "Query too slow")
     }
 }
