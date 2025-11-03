@@ -3,6 +3,7 @@ package traversium.tripservice.service
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import traversium.tripservice.db.model.Visibility
 import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.TripNotFoundException
 import traversium.tripservice.db.repository.TripRepository
@@ -38,17 +39,22 @@ class TripService(
             throw IllegalArgumentException("Owner ID and title cannot be null, new trip cannot have tripId")
         }
 
-        val trip = tripRepository.save(dto.toTrip())
+        val trip = dto.toTrip().copy(
+            visibility = dto.visibility ?: Visibility.PRIVATE,
+            description = dto.description ?: "",
+            coverPhotoUrl = dto.coverPhotoUrl ?: ""
+        )
+        val saved = tripRepository.save(trip)
 
         // Kafka event - Trip CREATE
         eventPublisher.publishEvent(
             TripEvent(
                 eventType = TripEventType.TRIP_CREATED,
-                tripId = trip.tripId,
-                ownerId = trip.ownerId,
+                tripId = saved.tripId,
+                ownerId = saved.ownerId,
             )
         )
-        return trip.toDto()
+        return saved.toDto()
     }
 
     @Transactional
@@ -75,14 +81,15 @@ class TripService(
         val mergedTrip = existingTrip.copy(
             title = updated.title ?: existingTrip.title,
             description = updated.description ?: existingTrip.description,
-            coverPhotoUrl = updated.coverPhotoUrl ?: existingTrip.coverPhotoUrl
+            coverPhotoUrl = updated.coverPhotoUrl ?: existingTrip.coverPhotoUrl,
+            visibility = updated.visibility ?: existingTrip.visibility,
         )
         // Kafka event - Trip UPDATE
         eventPublisher.publishEvent(
             TripEvent(
                 eventType = TripEventType.TRIP_UPDATED,
-                tripId = updated.tripId,
-                ownerId = updated.ownerId,
+                tripId = mergedTrip.tripId,
+                ownerId = mergedTrip.ownerId,
             )
         )
 

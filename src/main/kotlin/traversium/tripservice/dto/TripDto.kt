@@ -8,7 +8,7 @@ data class TripDto(
     val title: String?,
     val description: String? = null,
     val ownerId: String?,
-    val visibility: Visibility,
+    val visibility: Visibility? = null,
     val coverPhotoUrl: String? = null,
     val collaborators: List<String> = emptyList(),
     val viewers: List<String> = emptyList(),

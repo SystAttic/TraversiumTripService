@@ -381,6 +381,4 @@ class TripServiceIntegrationTest @Autowired constructor(
         assertTrue(found.isEmpty(), "Expected no trips for owner $user")
     }
 
-
-
 }

@@ -20,8 +20,8 @@ data class Trip(
     @Column(name="owner_id", nullable = false)
     val ownerId: String? = null, // Firebase user ID
 
-    @Column(name="visibility")
-    val visibility: Visibility = Visibility.PRIVATE,
+    @Column(name="visibility", nullable = false)
+    val visibility: Visibility? = null,
 
     @Column(name = "cover_photo_url")
     val coverPhotoUrl: String? = null,
