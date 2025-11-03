@@ -20,6 +20,9 @@ data class Trip(
     @Column(name="owner_id", nullable = false)
     val ownerId: String? = null, // Firebase user ID
 
+    @Column(name="visibility")
+    val visibility: Visibility = Visibility.PRIVATE,
+
     @Column(name = "cover_photo_url")
     val coverPhotoUrl: String? = null,
 
@@ -62,5 +65,5 @@ data class Trip(
         const val TABLE_NAME = "trip"
     }
 
-    fun toDto() = TripDto(tripId, title, description, ownerId, coverPhotoUrl, collaborators, viewers, albums.map{it.toDto()}.toMutableList())
+    fun toDto() = TripDto(tripId, title, description, ownerId, visibility, coverPhotoUrl, collaborators, viewers, albums.map{it.toDto()}.toMutableList())
 }

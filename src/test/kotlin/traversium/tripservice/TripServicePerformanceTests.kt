@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.junit.jupiter.SpringExtension
+import traversium.tripservice.db.model.Visibility
 import traversium.tripservice.dto.TripDto
 import traversium.tripservice.service.TripService
 import kotlin.system.measureTimeMillis
@@ -36,6 +37,7 @@ class TripServicePerformanceTests @Autowired constructor(
                 title = "Trip $id",
                 description = "Test trip $id",
                 ownerId = users.random(),
+                visibility = Visibility.PRIVATE,
                 collaborators = users.shuffled().take(5).toList(),
                 viewers = emptyList(),
                 albums = mutableListOf()

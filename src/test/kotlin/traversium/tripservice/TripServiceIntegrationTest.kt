@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.junit.jupiter.SpringExtension
+import traversium.tripservice.db.model.Visibility
 import traversium.tripservice.dto.AlbumDto
 import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.*
@@ -30,6 +31,7 @@ class TripServiceIntegrationTest @Autowired constructor(
             title = "New Trip",
             description = "Testing creation",
             ownerId = "owner_1",
+            visibility = Visibility.PRIVATE,
             coverPhotoUrl = "url",
             collaborators = listOf("user_2", "user_3"),
             viewers = emptyList(),
@@ -46,10 +48,10 @@ class TripServiceIntegrationTest @Autowired constructor(
     @Test
     fun `get all Trips`(){
         val trip1 = tripService.createTrip(
-            TripDto(null, "Trip A", "Description", "user_1", null, emptyList(), emptyList(), mutableListOf())
+            TripDto(null, "Trip A", "Description", "user_1", Visibility.PRIVATE, null, emptyList(), emptyList(), mutableListOf())
         )
         val trip2 = tripService.createTrip(
-            TripDto(null, "Trip B", "Description", "user_2", null, emptyList(), emptyList(), mutableListOf())
+            TripDto(null, "Trip B", "Description", "user_2", Visibility.PRIVATE,null, emptyList(), emptyList(), mutableListOf())
         )
 
         val allTrips = tripService.getAllTrips()
@@ -62,7 +64,7 @@ class TripServiceIntegrationTest @Autowired constructor(
     @Test
     fun `get Trip by tripId`() {
         val created = tripService.createTrip(
-            TripDto(null, "Trip X", "Desc", "user_x", null, emptyList(), emptyList(), mutableListOf())
+            TripDto(null, "Trip X", "Desc", "user_x", Visibility.PRIVATE,null, emptyList(), emptyList(), mutableListOf())
         )
         val found = tripService.getByTripId(created.tripId!!)
         assertEquals(created.tripId, found.tripId)
@@ -72,9 +74,9 @@ class TripServiceIntegrationTest @Autowired constructor(
     @Test
     fun `get all Trips by ownerId`(){
         val ownerId = "user_owner"
-        tripService.createTrip(TripDto(null, "Owner Trip 1", "desc", ownerId, null, emptyList(), emptyList(), mutableListOf()))
-        tripService.createTrip(TripDto(null, "Owner Trip 2", "desc", ownerId, null, emptyList(), emptyList(), mutableListOf()))
-        tripService.createTrip(TripDto(null, "Other Trip", "desc", "another", null, emptyList(), emptyList(), mutableListOf()))
+        tripService.createTrip(TripDto(null, "Owner Trip 1", "desc", ownerId, Visibility.PRIVATE,null, emptyList(), emptyList(), mutableListOf()))
+        tripService.createTrip(TripDto(null, "Owner Trip 2", "desc", ownerId, Visibility.PRIVATE,null, emptyList(), emptyList(), mutableListOf()))
+        tripService.createTrip(TripDto(null, "Other Trip", "desc", "another", Visibility.PRIVATE,null, emptyList(), emptyList(), mutableListOf()))
 
         val found = tripService.getTripsByOwner(ownerId)
         assertEquals(2, found.size)
@@ -88,6 +90,7 @@ class TripServiceIntegrationTest @Autowired constructor(
             title = "My Test Trip",
             description = "Integration testing trip update",
             ownerId = "user_1",
+            visibility = Visibility.PRIVATE,
             coverPhotoUrl = null,
             collaborators = listOf("user_2", "user_3"),
             viewers = emptyList(),
@@ -105,7 +108,7 @@ class TripServiceIntegrationTest @Autowired constructor(
     @Test
     fun `delete a Trip`() {
         val created = tripService.createTrip(
-            TripDto(null, "Trip to Delete", "desc", "user_del", null, emptyList(), emptyList(), mutableListOf())
+            TripDto(null, "Trip to Delete", "desc", "user_del", Visibility.PRIVATE,null, emptyList(), emptyList(), mutableListOf())
         )
 
         val tripId = created.tripId!!
@@ -124,9 +127,9 @@ class TripServiceIntegrationTest @Autowired constructor(
     @Test
     fun `get all Trips by collaboratorId`() {
         val collaborator = "collab_user"
-        tripService.createTrip(TripDto(null, "Collab Trip 1", "desc", "owner_1", null, listOf(collaborator), emptyList(), mutableListOf()))
-        tripService.createTrip(TripDto(null, "Collab Trip 2", "desc", "owner_2", null, listOf(collaborator), emptyList(), mutableListOf()))
-        tripService.createTrip(TripDto(null, "Non Collab Trip", "desc", "owner_3", null, listOf("other"), emptyList(), mutableListOf()))
+        tripService.createTrip(TripDto(null, "Collab Trip 1", "desc", "owner_1", Visibility.PRIVATE,null, listOf(collaborator), emptyList(), mutableListOf()))
+        tripService.createTrip(TripDto(null, "Collab Trip 2", "desc", "owner_2", Visibility.PRIVATE,null, listOf(collaborator), emptyList(), mutableListOf()))
+        tripService.createTrip(TripDto(null, "Non Collab Trip", "desc", "owner_3", Visibility.PRIVATE,null, listOf("other"), emptyList(), mutableListOf()))
 
         // convert to DTOs if service doesn’t already return them detached
         val found = tripService.getTripsByCollaborator(collaborator).map { it }
@@ -140,7 +143,7 @@ class TripServiceIntegrationTest @Autowired constructor(
     @Test
     fun `add a Collaborator to Trip`() {
         val trip = tripService.createTrip(
-            TripDto(null, "Trip Collab Add", "desc", "owner_1", null, listOf("user_2"), emptyList(), mutableListOf())
+            TripDto(null, "Trip Collab Add", "desc", "owner_1", Visibility.PRIVATE,null, listOf("user_2"), emptyList(), mutableListOf())
         )
         val updated = tripService.addCollaboratorToTrip(trip.tripId!!, "new_user")
 
@@ -151,7 +154,7 @@ class TripServiceIntegrationTest @Autowired constructor(
     @Test
     fun `delete a Collaborator from Trip`() {
         val trip = tripService.createTrip(
-            TripDto(null, "Trip Collab Del", "desc", "owner_1", null, listOf("user_a", "user_b"), emptyList(), mutableListOf())
+            TripDto(null, "Trip Collab Del", "desc", "owner_1", Visibility.PRIVATE,null, listOf("user_a", "user_b"), emptyList(), mutableListOf())
         )
 
         val tripId = requireNotNull(trip.tripId)
@@ -165,7 +168,7 @@ class TripServiceIntegrationTest @Autowired constructor(
     @Test
     fun `add a Viewer to Trip`() {
         val trip = tripService.createTrip(
-            TripDto(null, "Trip View Add", "desc", "owner_1", null, emptyList(), listOf(), mutableListOf())
+            TripDto(null, "Trip View Add", "desc", "owner_1", Visibility.PRIVATE,null, emptyList(), listOf(), mutableListOf())
         )
 
         val updated = tripService.addViewerToTrip(trip.tripId!!, "viewer_1")
@@ -175,7 +178,7 @@ class TripServiceIntegrationTest @Autowired constructor(
     @Test
     fun `delete a Viewer from Trip`() {
         val trip = tripService.createTrip(
-            TripDto(null, "Trip Viewer deletion", "desc", "owner_1", null, emptyList(), listOf("viewer_a", "viewer_b"), mutableListOf())
+            TripDto(null, "Trip Viewer deletion", "desc", "owner_1", Visibility.PRIVATE,null, emptyList(), listOf("viewer_a", "viewer_b"), mutableListOf())
         )
 
         val tripId = requireNotNull(trip.tripId)
@@ -189,7 +192,7 @@ class TripServiceIntegrationTest @Autowired constructor(
     @Test
     fun `get an Album from Trip`() {
         val trip = tripService.createTrip(
-            TripDto(null, "Trip With Album", "desc", "owner_1", null, emptyList(), emptyList(), mutableListOf())
+            TripDto(null, "Trip With Album", "desc", "owner_1", Visibility.PRIVATE,null, emptyList(), emptyList(), mutableListOf())
         )
         val albumDto = AlbumDto(null, "Album 1", "desc", emptyList())
         val tripId = requireNotNull(trip.tripId)
@@ -208,6 +211,7 @@ class TripServiceIntegrationTest @Autowired constructor(
             title = "Trip with Album",
             description = "Integration testing trip creation",
             ownerId = "user_1",
+            visibility = Visibility.PRIVATE,
             coverPhotoUrl = null,
             collaborators = listOf("user_2", "user_3"),
             viewers = emptyList(),
@@ -243,6 +247,7 @@ class TripServiceIntegrationTest @Autowired constructor(
             title = "Trip with Album",
             description = "Integration testing trip creation",
             ownerId = "user_1",
+            visibility = Visibility.PRIVATE,
             coverPhotoUrl = null,
             collaborators = listOf("user_2", "user_3"),
             viewers = emptyList(),
@@ -270,7 +275,7 @@ class TripServiceIntegrationTest @Autowired constructor(
     @Test
     fun `delete album from trip without albums should throw`() {
         val trip = tripService.createTrip(
-            TripDto(null, "Empty Album Trip", "desc", "owner_edge", null, emptyList(), emptyList(), mutableListOf())
+            TripDto(null, "Empty Album Trip", "desc", "owner_edge", Visibility.PRIVATE,null, emptyList(), emptyList(), mutableListOf())
         )
 
         val tripId = requireNotNull(trip.tripId)
@@ -282,7 +287,7 @@ class TripServiceIntegrationTest @Autowired constructor(
     @Test
     fun `get album from trip without albums should throw`() {
         val trip = tripService.createTrip(
-            TripDto(null, "No Album Trip", "desc", "owner_x", null, emptyList(), emptyList(), mutableListOf())
+            TripDto(null, "No Album Trip", "desc", "owner_x", Visibility.PRIVATE,null, emptyList(), emptyList(), mutableListOf())
         )
 
         val tripId = requireNotNull(trip.tripId)
@@ -294,7 +299,7 @@ class TripServiceIntegrationTest @Autowired constructor(
     @Test
     fun `add collaborator that already exists should throw`() {
         val trip = tripService.createTrip(
-            TripDto(null, "Duplicate Collaborator Trip", "desc", "owner_1", null, listOf("user_a"), emptyList(), mutableListOf())
+            TripDto(null, "Duplicate Collaborator Trip", "desc", "owner_1", Visibility.PRIVATE,null, listOf("user_a"), emptyList(), mutableListOf())
         )
 
         val tripId = requireNotNull(trip.tripId)
@@ -306,7 +311,7 @@ class TripServiceIntegrationTest @Autowired constructor(
     @Test
     fun `delete collaborator that does not exist should throw`() {
         val trip = tripService.createTrip(
-            TripDto(null, "No Such Collaborator Trip", "desc", "owner_1", null, listOf("user_b"), emptyList(), mutableListOf())
+            TripDto(null, "No Such Collaborator Trip", "desc", "owner_1", Visibility.PRIVATE,null, listOf("user_b"), emptyList(), mutableListOf())
         )
 
         val tripId = requireNotNull(trip.tripId)
@@ -318,7 +323,7 @@ class TripServiceIntegrationTest @Autowired constructor(
     @Test
     fun `add viewer that already exists should throw`() {
         val trip = tripService.createTrip(
-            TripDto(null, "Duplicate Viewer Trip", "desc", "owner_1", null, emptyList(), listOf("viewer_1"), mutableListOf())
+            TripDto(null, "Duplicate Viewer Trip", "desc", "owner_1", Visibility.PRIVATE,null, emptyList(), listOf("viewer_1"), mutableListOf())
         )
 
         val tripId = requireNotNull(trip.tripId)
@@ -330,7 +335,7 @@ class TripServiceIntegrationTest @Autowired constructor(
     @Test
     fun `delete viewer that does not exist should throw`() {
         val trip = tripService.createTrip(
-            TripDto(null, "Viewer Not Found Trip", "desc", "owner_1", null, emptyList(), listOf("viewer_2"), mutableListOf())
+            TripDto(null, "Viewer Not Found Trip", "desc", "owner_1", Visibility.PRIVATE,null, emptyList(), listOf("viewer_2"), mutableListOf())
         )
 
         val tripId = requireNotNull(trip.tripId)
@@ -375,6 +380,7 @@ class TripServiceIntegrationTest @Autowired constructor(
         val found = tripService.getTripsByOwner(user)
         assertTrue(found.isEmpty(), "Expected no trips for owner $user")
     }
+
 
 
 }
