@@ -4,11 +4,11 @@ import traversium.tripservice.db.model.Media
 
 data class MediaDto(
     val mediaId: Long?,
-    val pathUrl: String,
-    val ownerId: String,
-    val fileType: String,
-    val fileFormat: String,
-    val fileSize: Long,
+    val pathUrl: String?,
+    val ownerId: String?,
+    val fileType: String?,
+    val fileFormat: String?,
+    val fileSize: Long?,
     val geoLocation: String? = null,
     val timeCreated: String? = null
 ) {

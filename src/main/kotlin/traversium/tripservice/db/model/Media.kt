@@ -11,20 +11,20 @@ data class Media(
     @Column(name = "media_id", unique = true, nullable = false, updatable = false, length = 36)
     val mediaId: Long? = null,
 
-    @Column(name= "path_url", nullable = false)
-    val pathUrl: String, // reference from File Storage Service
+    @Column(name= "path_url")
+    val pathUrl: String?, // reference from File Storage Service
 
-    @Column(name="owner_id", nullable = false)
-    val ownerId: String, // who uploaded
+    @Column(name="owner_id")
+    val ownerId: String?, // who uploaded
 
-    @Column(name="file_type",nullable = false)
-    val fileType: String, // image | video
+    @Column(name="file_type")
+    val fileType: String?, // image | video
 
-    @Column(name="file_format",nullable = false)
-    val fileFormat: String, // e.g. jpg, png, mp4
+    @Column(name="file_format")
+    val fileFormat: String?, // e.g. jpg, png, mp4
 
-    @Column(name="file_size",nullable = false)
-    val fileSize: Long,
+    @Column(name="file_size")
+    val fileSize: Long?,
 
     @Column(name="geo_location")
     val geoLocation: String? = null, // will later store coordinates or JSON
@@ -35,6 +35,8 @@ data class Media(
     companion object {
         const val TABLE_NAME = "media"
     }
+
+    constructor() : this(null, null, null, null, null, null, null, null) // ✅ Hibernate-friendly constructor
 
     fun toDto(): MediaDto = MediaDto(
         mediaId = mediaId,

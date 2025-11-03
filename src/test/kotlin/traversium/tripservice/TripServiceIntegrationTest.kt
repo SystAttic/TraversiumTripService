@@ -98,7 +98,7 @@ class TripServiceIntegrationTest @Autowired constructor(
         val createdId = created.tripId
         requireNotNull(createdId) { "Trip ID should not be null after creation" }
 
-        val updated = tripService.updateTrip(created.copy(title = "Updated Trip"))
+        val updated = tripService.updateTrip( created.copy(title = "Updated Trip"))
         assertEquals("Updated Trip", updated.title)
     }
 

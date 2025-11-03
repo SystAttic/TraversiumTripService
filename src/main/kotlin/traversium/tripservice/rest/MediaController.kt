@@ -4,11 +4,13 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
+import org.apache.logging.log4j.kotlin.logger
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import traversium.tripservice.dto.MediaDto
+import traversium.tripservice.exceptions.MediaNotFoundException
 import traversium.tripservice.service.MediaService
 
 @RestController
@@ -19,8 +21,8 @@ class MediaController(
 
     @GetMapping
     @Operation(
-        summary = "Get media by album id",
-        description = "Get media by album id",
+        summary = "Get all media",
+        description = "Get all media",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -31,8 +33,8 @@ class MediaController(
                 )]
             ),
             ApiResponse(
-                responseCode = "400",
-                description = "Bad request"
+                responseCode = "404",
+                description = "No media found."
             ),
             ApiResponse(
                 responseCode = "500",
@@ -40,8 +42,16 @@ class MediaController(
             )
         ]
     )
-    fun getAllMedia(): List<MediaDto> =
-        mediaService.getAllMedia()
+    fun getAllMedia(): ResponseEntity<List<MediaDto>> {
+        return try {
+            val media = mediaService.getAllMedia()
+            logger.info("All media retrieved.")
+            ResponseEntity.ok(media)
+        } catch (_: MediaNotFoundException) {
+            logger.info("No media found.")
+            ResponseEntity.notFound().build()
+        }
+    }
 
     @GetMapping("/{mediaId}")
     @Operation(
@@ -57,8 +67,8 @@ class MediaController(
                 )]
             ),
             ApiResponse(
-                responseCode = "400",
-                description = "Bad request"
+                responseCode = "404",
+                description = "Media not found."
             ),
             ApiResponse(
                 responseCode = "500",
@@ -66,27 +76,35 @@ class MediaController(
             )
         ]
     )
-    fun getMediaById(@PathVariable mediaId: Long): MediaDto =
-        mediaService.getMediaById(mediaId)
+    fun getMediaById(
+        @PathVariable mediaId: Long
+    ): ResponseEntity<MediaDto> {
+        return try {
+            val media = mediaService.getMediaById(mediaId)
+            logger.info("Media $mediaId retrieved.")
+            ResponseEntity.ok(media)
+        } catch (_: MediaNotFoundException) {
+            logger.info("No media by ID $mediaId found.")
+            ResponseEntity.notFound().build()
+        }
+    }
 
-
-    // TODO - Move to AlbumController
-    /*@PostMapping("/{albumId}")
+    @GetMapping("(/owner/{ownerId})")
     @Operation(
-        summary = "Add media to album",
-        description = "Add media to album by albumId",
+        summary = "Get media by ownerId",
+        description = "Get media by ownerId",
         responses = [
             ApiResponse(
                 responseCode = "200",
-                description = "Media added to album by albumId",
+                description = "Media by ownerId returned",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = MediaDto::class)
                 )]
             ),
             ApiResponse(
-                responseCode = "400",
-                description = "Bad request"
+                responseCode = "404",
+                description = "No media found."
             ),
             ApiResponse(
                 responseCode = "500",
@@ -94,37 +112,16 @@ class MediaController(
             )
         ]
     )
-    fun addMediaToAlbum(
-        @PathVariable albumId: Long,
-        @RequestBody dto: MediaDto
-    ): ResponseEntity<MediaDto> =
-        ResponseEntity.status(HttpStatus.CREATED).body(mediaService.addMediaToAlbum(albumId, dto))
-
-    @DeleteMapping("/{mediaId}")
-    @Operation(
-        summary = "Delete media by mediaId from album",
-        description = "Delete media by mediaId",
-        responses = [
-            ApiResponse(
-                responseCode = "200",
-                description = "Media deleted",
-                content = [Content(
-                    mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = MediaDto::class)
-                )]
-            ),
-            ApiResponse(
-                responseCode = "400",
-                description = "Bad request"
-            ),
-            ApiResponse(
-                responseCode = "500",
-                description = "Internal server error"
-            )
-        ]
-    )
-    fun deleteMediaFromAlbum(@PathVariable mediaId: Long): ResponseEntity<Void> {
-        mediaService.deleteMedia(mediaId)
-        return ResponseEntity.noContent().build()
-    }*/
+    fun getMediaByOwner(
+        @PathVariable ownerId: String
+    ) : ResponseEntity<List<MediaDto>> {
+        return try {
+            val media = mediaService.getMediaByOwner(ownerId)
+            logger.info("Media by ownerId $ownerId found.")
+            ResponseEntity.ok(media)
+        } catch (_: MediaNotFoundException) {
+            logger.info("No media by owner $ownerId found.")
+            ResponseEntity.notFound().build()
+        }
+    }
 }

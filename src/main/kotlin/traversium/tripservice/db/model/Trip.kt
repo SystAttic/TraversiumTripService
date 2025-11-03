@@ -46,7 +46,7 @@ data class Trip(
     val viewers: MutableList<String> = mutableListOf(),
 
     /* ---- Albums ---- */
-    @OneToMany(cascade = [(CascadeType.ALL)], fetch = FetchType.EAGER)
+    @OneToMany(cascade = [(CascadeType.ALL)], orphanRemoval = true, fetch = FetchType.EAGER)
     @JoinTable(
         name = "trip_albums",
         joinColumns = [JoinColumn(name = "trip_id")],
