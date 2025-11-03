@@ -137,7 +137,7 @@ class AlbumController(
 
     @GetMapping("{albumId}/media/{mediaId}")
     @Operation(
-        summary = "Get media from album.",
+        summary = "Get media from album",
         description ="Returns media by ID from album by ID.",
         responses = [
             ApiResponse(
@@ -218,7 +218,7 @@ class AlbumController(
 
     @DeleteMapping("{albumId}/media/{mediaId}")
     @Operation(
-        summary = "Delete media from album.",
+        summary = "Delete media from album",
         description = "Deletes media by ID from album by ID.",
         responses = [
             ApiResponse(

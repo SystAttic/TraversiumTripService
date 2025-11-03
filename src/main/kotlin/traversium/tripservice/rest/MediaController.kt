@@ -22,7 +22,7 @@ class MediaController(
     @GetMapping
     @Operation(
         summary = "Get all media",
-        description = "Get all media",
+        description = "Gets all media.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -55,8 +55,8 @@ class MediaController(
 
     @GetMapping("/{mediaId}")
     @Operation(
-        summary = "Get media by mediaId",
-        description = "Get media by mediaId",
+        summary = "Get media",
+        description = "Gets media by ID.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -91,8 +91,8 @@ class MediaController(
 
     @GetMapping("(/owner/{ownerId})")
     @Operation(
-        summary = "Get media by ownerId",
-        description = "Get media by ownerId",
+        summary = "Get media by owner",
+        description = "Gets media by owner ID",
         responses = [
             ApiResponse(
                 responseCode = "200",

@@ -290,7 +290,7 @@ class TripController(
 
     @PostMapping("/{tripId}/collaborators/{collaboratorId}")
     @Operation(
-        summary = "Add collaborator to trip.",
+        summary = "Add collaborator to trip",
         description = "Adds a collaborator to a trip.",
         responses = [
             ApiResponse(
