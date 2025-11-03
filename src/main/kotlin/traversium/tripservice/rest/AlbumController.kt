@@ -25,7 +25,7 @@ class AlbumController(
     @GetMapping
     @Operation(
         summary = "Get all albums",
-        description = "Returns all albums",
+        description = "Returns all albums.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -58,8 +58,8 @@ class AlbumController(
     }
     @GetMapping("/{albumId}")
     @Operation(
-        summary = "Get album by id",
-        description = "Returns album by id",
+        summary = "Get album",
+        description = "Returns album by ID.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -92,53 +92,10 @@ class AlbumController(
         }
     }
 
-    @PostMapping("/{albumId}")
-    @Operation(
-        summary = "Create new album",
-        description = "Creates a new album",
-        responses = [
-            ApiResponse(
-                responseCode = "200",
-                description = "New album created",
-                content = [Content(
-                    mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = AlbumDto::class)
-                )]
-            ),
-            ApiResponse(
-                responseCode = "400",
-                description = "Bad request - invalid album data provided.",
-            ),
-            ApiResponse(
-                responseCode = "409",
-                description = "Conflict - album already exists.",
-            ),
-            ApiResponse(
-                responseCode = "500",
-                description = "Internal server error.",
-            )
-        ]
-
-    )
-    fun createAlbum(
-        @RequestBody albumDto: AlbumDto
-    ): ResponseEntity<AlbumDto> {
-        return try {
-            val album = albumService.createAlbum(albumDto)
-            logger.info("Album ${album.albumId} created.")
-            ResponseEntity.ok(album)
-        } catch (_: AlbumAlreadyExistsException) {
-            logger.info("Album ${albumDto.albumId} already exists.")
-            ResponseEntity.status(HttpStatus.CONFLICT).build()
-        } catch (_: Exception){
-            ResponseEntity.badRequest().build()
-        }
-    }
-
     @PutMapping("/{albumId}")
     @Operation(
         summary = "Update album",
-        description = "Updates an existing album",
+        description = "Updates an album by ID.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -178,47 +135,10 @@ class AlbumController(
         }
     }
 
-    @DeleteMapping("/{albumId}")
-    @Operation(
-        summary = "Delete album by id",
-        description = "Deletes an existing album",
-        responses = [
-            ApiResponse(
-                responseCode = "200",
-                description = "Album deleted",
-                content = [Content(
-                    mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = AlbumDto::class)
-                )]
-            ),
-            ApiResponse(
-                responseCode = "404",
-                description = "Album not found.",
-            ),
-            ApiResponse(
-                responseCode = "500",
-                description = "Internal server error"
-            )
-        ]
-
-    )
-    fun deleteAlbum(
-        @PathVariable albumId: Long
-    ): ResponseEntity<Void> {
-        return try {
-            albumService.deleteAlbum(albumId)
-            logger.info("Trip $albumId deleted.")
-            ResponseEntity.ok().build()
-        } catch (_: AlbumNotFoundException){
-            logger.info("Trip $albumId not found.")
-            ResponseEntity.notFound().build()
-        }
-    }
-
     @GetMapping("{albumId}/media/{mediaId}")
     @Operation(
-        summary = "Get media from album",
-        description ="Get media from album",
+        summary = "Get media from album.",
+        description ="Returns media by ID from album by ID.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -256,7 +176,7 @@ class AlbumController(
     @PutMapping("{albumId}/media")
     @Operation(
         summary = "Add media to album",
-        description ="Add media to album",
+        description ="Adds media to album by ID.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -299,7 +219,7 @@ class AlbumController(
     @DeleteMapping("{albumId}/media/{mediaId}")
     @Operation(
         summary = "Delete media from album.",
-        description = "Delete media from album.",
+        description = "Deletes media by ID from album by ID.",
         responses = [
             ApiResponse(
                 responseCode = "200",

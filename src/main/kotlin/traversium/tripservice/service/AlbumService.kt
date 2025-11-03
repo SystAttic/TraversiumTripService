@@ -29,25 +29,6 @@ class AlbumService(
             .toDto()
 
     @Transactional
-    fun createAlbum(dto: AlbumDto): AlbumDto {
-        if (dto.title == null || dto.albumId != null) {
-            throw IllegalArgumentException("Title cannot be null, new album cannot have albumId")
-        }
-
-        val album = albumRepository.save(dto.toAlbum())
-
-        // Kafka event - Trip CREATE
-        eventPublisher.publishEvent(
-            AlbumEvent(
-                eventType = AlbumEventType.ALBUM_CREATED,
-                albumId = album.albumId,
-                title = album.title,
-            )
-        )
-        return album.toDto()
-    }
-
-    @Transactional
     fun updateAlbum(albumId: Long, dto: AlbumDto): AlbumDto {
         val existingAlbum = albumRepository.findById(albumId)
             .orElseThrow { AlbumNotFoundException(albumId) }
@@ -66,22 +47,6 @@ class AlbumService(
         )
         return albumRepository.save(updatedAlbum).toDto()
     }
-
-    @Transactional
-    fun deleteAlbum(albumId: Long) {
-        val album = albumRepository.findById(albumId)
-            .orElseThrow { AlbumNotFoundException(albumId) }
-        // Kafka event - Album DELETE
-        eventPublisher.publishEvent(
-            AlbumEvent(
-                eventType = AlbumEventType.ALBUM_DELETED,
-                albumId = album.albumId,
-                title = album.title,
-            )
-        )
-        albumRepository.delete(album)
-    }
-
 
     fun getMediaFromAlbum(albumId: Long, mediaId: Long): MediaDto {
         val album = albumRepository.findById(albumId).orElseThrow { AlbumNotFoundException(albumId) }

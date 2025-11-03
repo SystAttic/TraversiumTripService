@@ -28,8 +28,8 @@ class TripController(
 
     @GetMapping
     @Operation(
-        summary = "Get all trips.",
-        description = "Get all trips.",
+        summary = "Get all trips",
+        description = "Returns all trips.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -62,8 +62,8 @@ class TripController(
 
     @GetMapping("/{tripId}")
     @Operation(
-        summary = "Get trip by tripId.",
-        description = "Get trip by tripId.",
+        summary = "Get trip",
+        description = "Returns trip by ID.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -98,8 +98,8 @@ class TripController(
 
     @GetMapping("/owner/{ownerId}")
     @Operation(
-        summary = "Get trip by ownerId.",
-        description = "Get trip by ownerId.",
+        summary = "Get trips by owner",
+        description = "Returns all trips by owner with ID.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -138,8 +138,8 @@ class TripController(
 
     @PostMapping
     @Operation(
-        summary = "Create new trip.",
-        description = "Create new trip.",
+        summary = "Create new trip",
+        description = "Creates a new trip.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -180,8 +180,8 @@ class TripController(
 
     @PutMapping
     @Operation(
-        summary = "Update trip by tripId.",
-        description = "Update trip by tripId.",
+        summary = "Update trip",
+        description = "Updates trip by ID.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -222,8 +222,8 @@ class TripController(
 
     @DeleteMapping("/{tripId}")
     @Operation(
-        summary = "Delete trip by tripId.",
-        description = "Delete trip by tripId.",
+        summary = "Delete trip",
+        description = "Deletes trip by ID. Note: Also deletes its albums and media!",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -254,8 +254,8 @@ class TripController(
 
     @GetMapping("/collaborators/{collaboratorId}")
     @Operation(
-        summary = "Get trip by collaboratorId.",
-        description = "Get trip by collaboratorId.",
+        summary = "Get trips by collaborator",
+        description = "Returns all trips by collaborator ID.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -290,8 +290,8 @@ class TripController(
 
     @PostMapping("/{tripId}/collaborators/{collaboratorId}")
     @Operation(
-        summary = "Add collaborator to a trip.",
-        description = "Add collaborator to a trip.",
+        summary = "Add collaborator to trip.",
+        description = "Adds a collaborator to a trip.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -334,8 +334,8 @@ class TripController(
 
     @DeleteMapping("/{tripId}/collaborators/{collaboratorId}")
     @Operation(
-        summary = "Remove collaborator from trip.",
-        description = "Remove collaborator from a trip.",
+        summary = "Remove collaborator from trip",
+        description = "Removes a collaborator from trip by ID.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -373,8 +373,8 @@ class TripController(
 
     @GetMapping("/viewers/{viewerId}")
     @Operation(
-        summary = "Get all trips for viewer ID.",
-        description = "Get all trips for viewer ID.",
+        summary = "Get trips by viewer",
+        description = "Gets all trips by viewer ID.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -413,8 +413,8 @@ class TripController(
 
     @PostMapping("/{tripId}/viewers/{viewerId}")
     @Operation(
-        summary = "Add viewer to a trip.",
-        description = "Add viewer to a trip.",
+        summary = "Add viewer to trip",
+        description = "Adds a viewer to trip by ID.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -457,8 +457,8 @@ class TripController(
 
     @DeleteMapping("/{tripId}/viewers/{viewerId}")
     @Operation(
-        summary = "Remove viewer from a trip.",
-        description = "Remove viewer from a trip.",
+        summary = "Remove viewer from trip",
+        description = "Removes a viewer from trip by ID.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -497,8 +497,8 @@ class TripController(
 
     @GetMapping("/{tripId}/albums/{albumId}")
     @Operation(
-        summary = "Get album by albumId from trip.",
-        description = "Get album by albumId from trip.",
+        summary = "Get album from trip",
+        description = "Gets an album by ID from trip by ID.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -534,8 +534,8 @@ class TripController(
 
     @PostMapping("/{tripId}/albums")
     @Operation(
-        summary = "Add album to trip.",
-        description = "Add album to trip.",
+        summary = "Add album to trip",
+        description = "Adds an album to trip by ID.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -576,8 +576,8 @@ class TripController(
 
     @DeleteMapping("/{tripId}/albums/{albumId}")
     @Operation(
-        summary = "Delete album from trip by tripId.",
-        description = "Delete album from trip by tripId.",
+        summary = "Delete album from trip",
+        description = "Deletes an album from trip by ID. Note: Also deletes its media! ",
         responses = [
             ApiResponse(
                 responseCode = "200",
