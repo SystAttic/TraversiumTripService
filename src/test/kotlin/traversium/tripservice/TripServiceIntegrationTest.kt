@@ -14,6 +14,7 @@ import traversium.tripservice.dto.AlbumDto
 import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.*
 import traversium.tripservice.service.TripService
+import java.time.Instant
 
 @AutoConfigureTestDatabase
 @ActiveProfiles("test")
@@ -119,7 +120,7 @@ class TripServiceIntegrationTest @Autowired constructor(
 
         assertTrue(afterDelete < beforeDelete)
 
-        assertThrows(traversium.tripservice.exceptions.TripNotFoundException::class.java) {
+        assertThrows(TripNotFoundException::class.java) {
             tripService.getByTripId(tripId)
         }
     }
@@ -346,14 +347,14 @@ class TripServiceIntegrationTest @Autowired constructor(
 
     @Test
     fun `get trip that does not exist should throw`() {
-        assertThrows(traversium.tripservice.exceptions.TripNotFoundException::class.java) {
+        assertThrows(TripNotFoundException::class.java) {
             tripService.getByTripId(999999L)
         }
     }
 
     @Test
     fun `delete trip that does not exist should throw`() {
-        assertThrows(traversium.tripservice.exceptions.TripNotFoundException::class.java) {
+        assertThrows(TripNotFoundException::class.java) {
             tripService.deleteTrip(999999L)
         }
     }
@@ -362,7 +363,7 @@ class TripServiceIntegrationTest @Autowired constructor(
     fun `add album to non existing trip should throw`() {
         val albumDto = AlbumDto(null, "Ghost Album", "desc", emptyList())
 
-        assertThrows(traversium.tripservice.exceptions.TripNotFoundException::class.java) {
+        assertThrows(TripNotFoundException::class.java) {
             tripService.addAlbumToTrip(123456L, albumDto)
         }
     }

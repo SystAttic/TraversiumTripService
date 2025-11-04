@@ -17,6 +17,8 @@ import traversium.tripservice.exceptions.AlbumNotFoundException
 import traversium.tripservice.exceptions.AlbumWithoutMediaException
 import traversium.tripservice.service.AlbumService
 import traversium.tripservice.service.TripService
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
 @AutoConfigureTestDatabase
 @ActiveProfiles("test")
@@ -83,7 +85,8 @@ class AlbumServiceIntegrationTest @Autowired constructor(
             ownerId = "user_1",
             fileType = "image",
             fileFormat = "jpg",
-            fileSize = 100L
+            fileSize = 100L,
+            createdAt = OffsetDateTime.now(),
         )
 
         val updated = albumService.addMediaToAlbum(albumId, dto)
@@ -94,7 +97,7 @@ class AlbumServiceIntegrationTest @Autowired constructor(
     @Test
     fun `delete media from album`() {
         val (_, albumId) = createTripWithAlbum("Trip MediaDel", "Album with Media")
-        val mediaDto = MediaDto(null, "path.jpg", "owner", "image", "jpg", 10L)
+        val mediaDto = MediaDto(null, "path.jpg", "owner", "image", "jpg", fileSize = 10L, createdAt = OffsetDateTime.now(ZoneOffset.UTC))
         albumService.addMediaToAlbum(albumId, mediaDto)
 
         val updated = albumService.getByAlbumId(albumId)
@@ -108,7 +111,7 @@ class AlbumServiceIntegrationTest @Autowired constructor(
     @Test
     fun `get media from album`() {
         val (_, albumId) = createTripWithAlbum("Trip GetMedia", "Album Media")
-        val dto = MediaDto(null, "media1.jpg", "owner_1", "image", "jpg", 10L)
+        val dto = MediaDto(null, "media1.jpg", "owner_1", "image", "jpg", 10L, "",OffsetDateTime.now(ZoneOffset.UTC))
         albumService.addMediaToAlbum(albumId, dto)
 
         val updated = albumService.getByAlbumId(albumId)
