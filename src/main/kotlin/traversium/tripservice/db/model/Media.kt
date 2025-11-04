@@ -2,6 +2,8 @@ package traversium.tripservice.db.model
 
 import jakarta.persistence.*
 import traversium.tripservice.dto.MediaDto
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
 @Entity
 @Table(name = Media.TABLE_NAME)
@@ -15,7 +17,7 @@ data class Media(
     val pathUrl: String?, // reference from File Storage Service
 
     @Column(name="owner_id")
-    val ownerId: String?, // who uploaded
+    val ownerId: String, // who uploaded
 
     @Column(name="file_type")
     val fileType: String?, // image | video
@@ -27,16 +29,16 @@ data class Media(
     val fileSize: Long?,
 
     @Column(name="geo_location")
-    val geoLocation: String? = null, // will later store coordinates or JSON
+    val geoLocation: String?, // will store coordinates
 
-    @Column(name="time_created")
-    val timeCreated: String? = null  // ISO string from metadata or upload time
+    @Column(name = "time_created", nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
+    val createdAt: OffsetDateTime? = OffsetDateTime.now(ZoneOffset.UTC)
 ) {
     companion object {
         const val TABLE_NAME = "media"
     }
 
-    constructor() : this(null, null, null, null, null, null, null, null) // ✅ Hibernate-friendly constructor
+    constructor() : this(null, null, "", null, null, null, null, null)
 
     fun toDto(): MediaDto = MediaDto(
         mediaId = mediaId,
@@ -46,7 +48,7 @@ data class Media(
         fileFormat = fileFormat,
         fileSize = fileSize,
         geoLocation = geoLocation,
-        timeCreated = timeCreated
+        createdAt = createdAt
     )
 
 }

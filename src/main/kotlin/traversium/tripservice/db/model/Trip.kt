@@ -2,6 +2,7 @@ package traversium.tripservice.db.model
 
 import jakarta.persistence.*
 import traversium.tripservice.dto.TripDto
+import java.time.Instant
 
 @Entity
 @Table(name = Trip.TABLE_NAME)
@@ -25,6 +26,9 @@ data class Trip(
 
     @Column(name = "cover_photo_url")
     val coverPhotoUrl: String? = null,
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    val createdAt: Instant = Instant.now(),
 
     /* ---- Collaborators / Editors ---- */
     @ElementCollection(fetch = FetchType.EAGER)
@@ -65,5 +69,15 @@ data class Trip(
         const val TABLE_NAME = "trip"
     }
 
-    fun toDto() = TripDto(tripId, title, description, ownerId, visibility, coverPhotoUrl, collaborators, viewers, albums.map{it.toDto()}.toMutableList())
+    fun toDto() : TripDto= TripDto(
+        tripId,
+        title,
+        description,
+        ownerId,
+        visibility,
+        coverPhotoUrl,
+        collaborators,
+        viewers,
+        albums.map{it.toDto()}.toMutableList()
+    )
 }

@@ -1,25 +1,27 @@
 package traversium.tripservice.dto
 
 import traversium.tripservice.db.model.Media
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
 data class MediaDto(
     val mediaId: Long?,
-    val pathUrl: String?,
-    val ownerId: String?,
-    val fileType: String?,
-    val fileFormat: String?,
-    val fileSize: Long?,
+    val pathUrl: String? = null,
+    val ownerId: String,
+    val fileType: String? = null,
+    val fileFormat: String? = null,
+    val fileSize: Long? = null,
     val geoLocation: String? = null,
-    val timeCreated: String? = null
+    val createdAt: OffsetDateTime? = null,
 ) {
     fun toMedia(): Media = Media(
         mediaId = mediaId,
-        pathUrl = pathUrl,
+        pathUrl = pathUrl ?: "",
         ownerId = ownerId,
-        fileType = fileType,
-        fileFormat = fileFormat,
-        fileSize = fileSize,
-        geoLocation = geoLocation,
-        timeCreated = timeCreated
+        fileType = fileType ?: "",
+        fileFormat = fileFormat ?: "",
+        fileSize = fileSize ?: 0L,
+        geoLocation = geoLocation ?: "",
+        createdAt = createdAt ?: OffsetDateTime.now(ZoneOffset.UTC)
     )
 }
