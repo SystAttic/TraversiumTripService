@@ -288,7 +288,7 @@ class TripController(
         }
     }
 
-    @PostMapping("/{tripId}/collaborators/{collaboratorId}")
+    @PutMapping("/{tripId}/collaborators/{collaboratorId}")
     @Operation(
         summary = "Add collaborator to trip",
         description = "Adds a collaborator to a trip.",
@@ -411,7 +411,7 @@ class TripController(
         }
     }
 
-    @PostMapping("/{tripId}/viewers/{viewerId}")
+    @PutMapping("/{tripId}/viewers/{viewerId}")
     @Operation(
         summary = "Add viewer to trip",
         description = "Adds a viewer to trip by ID.",
@@ -564,7 +564,7 @@ class TripController(
         dto: AlbumDto) : ResponseEntity<TripDto> {
         return try {
             val trip = tripService.addAlbumToTrip(tripId, dto)
-            logger.info("Album ${dto.albumId} added to trip $tripId.")
+            logger.info("Album ${dto.title} added to trip $tripId.")
             ResponseEntity.ok(trip)
         } catch (_: TripNotFoundException) {
             logger.info("Trip $tripId not found.")

@@ -3,7 +3,6 @@ package traversium.tripservice.service
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import traversium.tripservice.db.model.Visibility
 import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.TripNotFoundException
 import traversium.tripservice.db.repository.TripRepository
@@ -39,12 +38,7 @@ class TripService(
             throw IllegalArgumentException("Owner ID and title cannot be null, new trip cannot have tripId")
         }
 
-        val trip = dto.toTrip().copy(
-            visibility = dto.visibility ?: Visibility.PRIVATE,
-            description = dto.description ?: "",
-            coverPhotoUrl = dto.coverPhotoUrl ?: ""
-        )
-        val saved = tripRepository.save(trip)
+        val saved = tripRepository.save(dto.toTrip())
 
         // Kafka event - Trip CREATE
         eventPublisher.publishEvent(
@@ -256,6 +250,4 @@ class TripService(
 
         return "Removed blocked user relations from trips."
     }
-
-    // TODO - dodaj (tudi na drugih Service) endpointe, ki so še potrebni
 }
