@@ -173,6 +173,12 @@ class TripController(
         } catch (_: TripAlreadyExistsException) {
             logger.info("Trip ${tripDto.tripId} already exists.")
             ResponseEntity.status(HttpStatus.CONFLICT).build()
+        } catch (_: TripHasViewerException) {
+            logger.info("Trip $tripDto.tripId already has a viewer or is an owner.")
+            ResponseEntity.badRequest().body(tripDto)
+        } catch (_: TripHasCollaboratorException) {
+            logger.info("Trip $tripDto.tripId already has a collaborator or is an owner.")
+            ResponseEntity.badRequest().build()
         } catch (_: Exception){
             ResponseEntity.badRequest().build()
         }
@@ -270,6 +276,10 @@ class TripController(
                 description = "No trips by this user found.",
             ),
             ApiResponse(
+                responseCode = "409",
+                description = "Bad request - invalid collaborator data",
+            ),
+            ApiResponse(
                 responseCode = "500",
                 description = "Internal server error.",
             )
@@ -285,6 +295,8 @@ class TripController(
         } catch (_: TripNotFoundException) {
             logger.info("No trips by user $collaboratorId found.")
             ResponseEntity.notFound().build()
+        } catch (_: Exception) {
+            ResponseEntity.badRequest().build()
         }
     }
 
@@ -390,7 +402,7 @@ class TripController(
             ),
             ApiResponse(
                 responseCode = "409",
-                description = "",
+                description = "Bad request - invalid viewer data",
             ),
             ApiResponse(
                 responseCode = "500",
@@ -408,6 +420,8 @@ class TripController(
         } catch (_: TripNotFoundException) {
             logger.info("No trips by viewer $viewerId found.")
             ResponseEntity.notFound().build()
+        } catch (_: Exception) {
+            ResponseEntity.badRequest().build()
         }
     }
 

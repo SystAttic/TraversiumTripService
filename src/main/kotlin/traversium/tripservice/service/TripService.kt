@@ -3,6 +3,8 @@ package traversium.tripservice.service
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import traversium.tripservice.db.model.Album
+import traversium.tripservice.db.model.Trip
 import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.TripNotFoundException
 import traversium.tripservice.db.repository.TripRepository
@@ -32,13 +34,43 @@ class TripService(
     fun getTripsByOwner(ownerId: String): List<TripDto> =
         tripRepository.findByOwnerId(ownerId).map { it.toDto() }
 
+    private fun validateCollaborator(trip: Trip, collaboratorId: String) {
+        if (trip.collaborators.contains(collaboratorId) || trip.ownerId == collaboratorId) {
+            throw TripHasCollaboratorException(trip.tripId!!, collaboratorId)
+        }
+    }
+
+    private fun validateViewer(trip: Trip, viewerId: String) {
+        if (trip.viewers.contains(viewerId) || trip.ownerId == viewerId) {
+            throw TripHasViewerException(trip.tripId!!, viewerId)
+        }
+    }
+
     @Transactional
     fun createTrip(dto: TripDto): TripDto {
         if (dto.ownerId == null || dto.title == null || dto.tripId != null) {
             throw IllegalArgumentException("Owner ID and title cannot be null, new trip cannot have tripId")
         }
 
-        val saved = tripRepository.save(dto.toTrip())
+        val trip = dto.toTrip().copy(
+            albums = mutableListOf(),
+            collaborators = mutableListOf(),
+            viewers = mutableListOf()
+        )
+
+        // Validate collaborators
+        dto.collaborators.forEach { collaboratorId ->
+            validateCollaborator(trip, collaboratorId) // if it fails, throw exception
+            trip.collaborators.add(collaboratorId)
+        }
+
+        // Validate viewers
+        dto.viewers.forEach { viewerId ->
+            validateViewer(trip, viewerId) // if it fails, throw exception
+            trip.viewers.add(viewerId)
+        }
+
+        val saved = tripRepository.save(trip)
 
         // Kafka event - Trip CREATE
         eventPublisher.publishEvent(
@@ -100,15 +132,11 @@ class TripService(
         val trip = tripRepository.findById(tripId)
             .orElseThrow { TripNotFoundException(tripId) }
 
-        if (trip.collaborators.contains(collaboratorId)) {
-            throw TripHasCollaboratorException(tripId, collaboratorId)
-        }
+        validateCollaborator(trip, collaboratorId)
 
-        val updatedTrip = trip.copy(
-            collaborators = trip.collaborators.toMutableList().apply { add(collaboratorId) }
-        )
+        trip.collaborators.add(collaboratorId)
 
-        val saved = tripRepository.save(updatedTrip)
+        val saved = tripRepository.save(trip)
 
         // Kafka event - Collaborator ADD
         eventPublisher.publishEvent(
@@ -149,15 +177,11 @@ class TripService(
         val trip = tripRepository.findById(tripId)
             .orElseThrow { TripNotFoundException(tripId) }
 
-        if (trip.viewers.contains(viewerId)) {
-            throw TripHasViewerException(tripId, viewerId)
-        }
+        validateViewer(trip, viewerId)
 
-        val updatedTrip = trip.copy(
-            viewers = trip.viewers.toMutableList().apply { add(viewerId) }
-        )
+        trip.viewers.add(viewerId)
 
-        val saved = tripRepository.save(updatedTrip)
+        val saved = tripRepository.save(trip)
 
         // Kafka event - Viewer ADD
         eventPublisher.publishEvent(
