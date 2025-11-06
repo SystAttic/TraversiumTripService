@@ -621,4 +621,37 @@ class TripController(
         }
     }
 
+    @GetMapping("/{tripId}/media")
+    @Operation(
+        summary = "Get all media from trip",
+        description = "Gets all media from trip by ID.",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Media successfully retrieved from trip.",
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "No trip by this ID found.",
+            ),
+            ApiResponse(
+                responseCode = "500",
+                description = "Internal server error",
+            )
+        ]
+    )
+    fun getAllMediaFromTrip(
+        @PathVariable tripId: Long,
+    ) : ResponseEntity<List<String>> {
+        return try {
+            val allMedia = tripService.getAllMediaFromTrip(tripId)
+            logger.info("All media retrieved from trip $tripId.")
+            ResponseEntity.ok(allMedia)
+        } catch (_: TripNotFoundException) {
+            logger.info("Trip $tripId not found.")
+            ResponseEntity.notFound().build()
+        }
+
+    }
+
 }

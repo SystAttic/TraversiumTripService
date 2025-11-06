@@ -274,4 +274,12 @@ class TripService(
 
         return "Removed blocked user relations from trips."
     }
+
+    fun getAllMediaFromTrip(tripId: Long): List<String> {
+        val trip = tripRepository.findById(tripId)
+            .orElseThrow { TripNotFoundException(tripId) }
+
+        return trip.albums
+            .flatMap { album -> album.media.mapNotNull { it.pathUrl } }
+    }
 }
