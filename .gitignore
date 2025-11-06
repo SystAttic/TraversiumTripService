@@ -5,6 +5,7 @@ target/
 !**/src/test/**/target/
 !**/src/test/kotlin/traversium.trip
 **/application.properties
+conf/
 
 ### STS ###
 .apt_generated
