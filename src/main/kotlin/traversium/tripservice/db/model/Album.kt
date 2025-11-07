@@ -3,6 +3,7 @@ package traversium.tripservice.db.model
 import jakarta.persistence.*
 import traversium.tripservice.dto.AlbumDto
 import java.time.Instant
+import java.time.OffsetDateTime
 
 @Entity
 @Table(name = Album.TABLE_NAME)
@@ -19,7 +20,7 @@ data class Album(
     var description: String? = null,
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    val createdAt: Instant = Instant.now(),
+    val createdAt: OffsetDateTime = OffsetDateTime.now(),
 
     @OneToMany(cascade = [(CascadeType.ALL)], orphanRemoval = true, fetch = FetchType.EAGER)
     @JoinTable(

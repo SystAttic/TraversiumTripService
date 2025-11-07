@@ -3,13 +3,13 @@ package traversium.tripservice.dto
 import com.fasterxml.jackson.annotation.JsonProperty
 import traversium.tripservice.db.model.Trip
 import traversium.tripservice.db.model.Visibility
-import java.time.Instant
+import java.time.OffsetDateTime
 
 data class TripDto(
     val tripId: Long?,
     val title: String?,
     val description: String? = null,
-    val ownerId: String?,
+    val ownerId: String? = null,
     val visibility: Visibility? = null,
     val coverPhotoUrl: String? = null,
     val collaborators: List<String> = emptyList(),
@@ -17,13 +17,13 @@ data class TripDto(
     val albums: List<AlbumDto> = emptyList(),
 
     @get:JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    val createdAt : Instant = Instant.now(),
+    val createdAt : OffsetDateTime = OffsetDateTime.now(),
 ) {
     fun toTrip() = Trip(
         tripId = tripId,
         title = title,
         description = description ?: "",
-        ownerId = ownerId,
+        ownerId = ownerId ?: "",
         visibility = visibility ?: Visibility.PRIVATE,
         coverPhotoUrl = coverPhotoUrl ?: "",
         collaborators = collaborators.toMutableList(),

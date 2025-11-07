@@ -2,7 +2,7 @@ package traversium.tripservice.db.model
 
 import jakarta.persistence.*
 import traversium.tripservice.dto.TripDto
-import java.time.Instant
+import java.time.OffsetDateTime
 
 @Entity
 @Table(name = Trip.TABLE_NAME)
@@ -19,7 +19,7 @@ data class Trip(
     val description: String? = null,
 
     @Column(name="owner_id", nullable = false)
-    val ownerId: String? = null, // Firebase user ID
+    val ownerId: String, // Firebase user ID
 
     @Column(name="visibility", nullable = false)
     val visibility: Visibility? = null,
@@ -28,7 +28,7 @@ data class Trip(
     val coverPhotoUrl: String? = null,
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    val createdAt: Instant = Instant.now(),
+    val createdAt: OffsetDateTime = OffsetDateTime.now(),
 
     /* ---- Collaborators / Editors ---- */
     @ElementCollection(fetch = FetchType.EAGER)

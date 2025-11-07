@@ -16,8 +16,8 @@ data class Media(
     @Column(name= "path_url")
     val pathUrl: String?, // reference from File Storage Service
 
-    @Column(name="owner_id")
-    val ownerId: String, // who uploaded
+    @Column(name="uploader")
+    val uploader: String, // who uploaded
 
     @Column(name="file_type")
     val fileType: String?, // image | video
@@ -31,8 +31,8 @@ data class Media(
     @Column(name="geo_location")
     val geoLocation: String?, // will store coordinates
 
-    @Column(name = "time_created", nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
-    val createdAt: OffsetDateTime? = OffsetDateTime.now(ZoneOffset.UTC)
+    @Column(name = "created_at", nullable = false)
+    val createdAt: OffsetDateTime? = OffsetDateTime.now()
 ) {
     companion object {
         const val TABLE_NAME = "media"
@@ -43,7 +43,7 @@ data class Media(
     fun toDto(): MediaDto = MediaDto(
         mediaId = mediaId,
         pathUrl = pathUrl,
-        ownerId = ownerId,
+        uploader = uploader,
         fileType = fileType,
         fileFormat = fileFormat,
         fileSize = fileSize,
