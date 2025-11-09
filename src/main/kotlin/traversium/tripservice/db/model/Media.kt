@@ -14,22 +14,22 @@ data class Media(
     val mediaId: Long? = null,
 
     @Column(name= "path_url")
-    val pathUrl: String?, // reference from File Storage Service
+    val pathUrl: String? = null, // reference from File Storage Service
 
     @Column(name="uploader")
-    val uploader: String, // who uploaded
+    val uploader: String? = null, // who uploaded
 
     @Column(name="file_type")
-    val fileType: String?, // image | video
+    val fileType: String? = null, // image | video
 
     @Column(name="file_format")
-    val fileFormat: String?, // e.g. jpg, png, mp4
+    val fileFormat: String? = null, // e.g. jpg, png, mp4
 
     @Column(name="file_size")
-    val fileSize: Long?,
+    val fileSize: Long? = null,
 
     @Column(name="geo_location")
-    val geoLocation: String?, // will store coordinates
+    val geoLocation: String? = null, // will store coordinates
 
     @Column(name = "created_at", nullable = false)
     val createdAt: OffsetDateTime? = OffsetDateTime.now()
@@ -37,8 +37,6 @@ data class Media(
     companion object {
         const val TABLE_NAME = "media"
     }
-
-    constructor() : this(null, null, "", null, null, null, null, null)
 
     fun toDto(): MediaDto = MediaDto(
         mediaId = mediaId,

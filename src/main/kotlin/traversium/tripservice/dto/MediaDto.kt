@@ -6,7 +6,7 @@ import java.time.OffsetDateTime
 data class MediaDto(
     val mediaId: Long?,
     val pathUrl: String? = null,
-    val uploader: String,
+    val uploader: String?,
     val fileType: String? = null,
     val fileFormat: String? = null,
     val fileSize: Long? = null,
