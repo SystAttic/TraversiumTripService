@@ -10,3 +10,5 @@ class TripHasCollaboratorException(tripId: Long, collaboratorId: String) : Runti
 
 class TripWithoutViewerException(tripId: Long, viewerId: String) : RuntimeException("Trip $tripId has no viewer $viewerId.")
 class TripHasViewerException(tripId: Long, viewerId: String) : RuntimeException("Viewer with ID '$viewerId' already exists in trip with ID $tripId.")
+
+class TripUnauthorizedException(message: String) : RuntimeException(message)

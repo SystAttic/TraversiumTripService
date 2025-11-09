@@ -73,14 +73,18 @@ class TripController(
                     schema = Schema(implementation = TripDto::class)
                 )]
             ),
-        ApiResponse(
-            responseCode = "404",
-            description = "No trip by this tripId found.",
-        ),
-        ApiResponse(
-            responseCode = "500",
-            description = "Internal server error.",
-        )
+            ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to get trip."
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "No trip by this tripId found.",
+            ),
+            ApiResponse(
+                responseCode = "500",
+                description = "Internal server error.",
+            )
         ]
     )
     fun getByTripId(
@@ -110,12 +114,12 @@ class TripController(
                 )]
             ),
             ApiResponse(
-                responseCode = "404",
-                description = "No trips by this ownerId found.",
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to get trips."
             ),
             ApiResponse(
-                responseCode = "409",
-                description = "Bad request - invalid ownerId provided.",
+                responseCode = "404",
+                description = "No trips found.",
             ),
             ApiResponse(
                 responseCode = "500",
@@ -124,14 +128,14 @@ class TripController(
         ]
     )
     fun getTripsByOwner(
-        @PathVariable ownerId: String
+        @PathVariable ownerId: String,
     ): ResponseEntity<List<TripDto>> {
         return try {
             val trips = tripService.getTripsByOwner(ownerId)
-            logger.info("Trips by owner $ownerId found.")
+            logger.info("Trips found.")
             ResponseEntity.ok(trips)
         } catch (_: TripNotFoundException){
-            logger.info("No trips by owner $ownerId found.")
+            logger.info("No trips found.")
             ResponseEntity.notFound().build()
         }
     }
@@ -152,6 +156,10 @@ class TripController(
             ApiResponse(
                 responseCode = "400",
                 description = "Bad request - invalid trip data provided.",
+            ),
+            ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to create trip."
             ),
             ApiResponse(
                 responseCode = "409",
@@ -196,6 +204,10 @@ class TripController(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = TripDto::class)
                 )]
+            ),
+            ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to update trip."
             ),
             ApiResponse(
                 responseCode = "404",
@@ -258,6 +270,10 @@ class TripController(
         }
     }
 
+    /*
+    *   <-- Collaborators -->
+    */
+
     @GetMapping("/collaborators/{collaboratorId}")
     @Operation(
         summary = "Get trips by collaborator",
@@ -290,10 +306,10 @@ class TripController(
     ) : ResponseEntity<List<TripDto>> {
         return try {
             val trips = tripService.getTripsByCollaborator(collaboratorId)
-            logger.info("Trips by user $collaboratorId found.")
+            logger.info("Trips by collaborator $collaboratorId found.")
             ResponseEntity.ok(trips)
         } catch (_: TripNotFoundException) {
-            logger.info("No trips by user $collaboratorId found.")
+            logger.info("No trips by collaborator $collaboratorId found.")
             ResponseEntity.notFound().build()
         } catch (_: Exception) {
             ResponseEntity.badRequest().build()
@@ -383,10 +399,14 @@ class TripController(
         }
     }
 
-    @GetMapping("/viewers/{viewerId}")
+    /*
+    *   <-- Viewers -->
+    */
+
+    @GetMapping("/viewers")
     @Operation(
-        summary = "Get trips by viewer",
-        description = "Gets all trips by viewer ID.",
+        summary = "Get viewed trips",
+        description = "Gets all viewed trips.",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -400,25 +420,23 @@ class TripController(
                 responseCode = "404",
                 description = "No trips found.",
             ),
-            ApiResponse(
-                responseCode = "409",
-                description = "Bad request - invalid viewer data",
-            ),
+//            ApiResponse(
+//                responseCode = "409",
+//                description = "Bad request - invalid viewer data",
+//            ),
             ApiResponse(
                 responseCode = "500",
                 description = "Internal server error.",
             )
         ]
     )
-    fun getTripsByViewer(
-        @PathVariable viewerId: String,
-    ) : ResponseEntity<List<TripDto>> {
+    fun getTripsByViewer() : ResponseEntity<List<TripDto>> {
         return try {
-            val trips = tripService.getTripsByViewer(viewerId)
-            logger.info("Trips by viewer $viewerId found.")
+            val trips = tripService.getTripsByViewer()
+            logger.info("Viewed trips found.")
             ResponseEntity.ok(trips)
         } catch (_: TripNotFoundException) {
-            logger.info("No trips by viewer $viewerId found.")
+            logger.info("No viewed trips found.")
             ResponseEntity.notFound().build()
         } catch (_: Exception) {
             ResponseEntity.badRequest().build()
@@ -575,7 +593,7 @@ class TripController(
     )
     fun addAlbumToTrip(
         @PathVariable tripId: Long,
-        dto: AlbumDto) : ResponseEntity<TripDto> {
+        @RequestBody dto: AlbumDto) : ResponseEntity<TripDto> {
         return try {
             val trip = tripService.addAlbumToTrip(tripId, dto)
             logger.info("Album ${dto.title} added to trip $tripId.")
