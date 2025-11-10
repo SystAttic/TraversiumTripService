@@ -134,25 +134,32 @@ class AlbumService(
         )
 
         val album = albumRepository.findById(albumId).orElseThrow{ AlbumNotFoundException(albumId) }
+
         try {
             album.media.add(media.toMedia())
         } catch (_: Exception) {
-            throw IllegalArgumentException()
+            throw IllegalArgumentException("Failed to add media to album list.")
         }
 
-        // Kafka event - Media CREATE
+        val savedAlbum = try {
+            albumRepository.save(album)
+        } catch (_: Exception) {
+            throw IllegalArgumentException("Failed to save album with new media.")
+        }
+
+        val savedMedia = savedAlbum.media
+            .firstOrNull { it.pathUrl == media.pathUrl && it.uploader == firebaseId }
+            ?: throw IllegalArgumentException("Media not found in saved album, ID generation failed.")
+
         eventPublisher.publishEvent(
             MediaEvent(
                 eventType = MediaEventType.MEDIA_ADDED,
-                mediaId = media.mediaId,
-                pathUrl = media.pathUrl,
-                )
+                mediaId = savedMedia.mediaId,
+                pathUrl = savedMedia.pathUrl,
+            )
         )
-        return try {
-            albumRepository.save(album).toDto()
-        } catch (_: Exception) {
-            throw IllegalArgumentException()
-        }
+
+        return savedAlbum.toDto()
     }
 
     @Transactional
