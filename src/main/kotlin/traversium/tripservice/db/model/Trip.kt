@@ -29,7 +29,7 @@ data class Trip(
     val coverPhotoUrl: String? = null,
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    val createdAt: OffsetDateTime = OffsetDateTime.now(),
+    var createdAt: OffsetDateTime? = null,
 
     /* ---- Collaborators / Editors ---- */
     @ElementCollection(fetch = FetchType.EAGER)
@@ -68,6 +68,12 @@ data class Trip(
 ){
     companion object{
         const val TABLE_NAME = "trip"
+    }
+    @PrePersist
+    protected fun onCreate() {
+        if (createdAt == null) {
+            createdAt = OffsetDateTime.now() // Only set for new entity
+        }
     }
 
     fun toDto() : TripDto= TripDto(

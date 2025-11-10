@@ -20,7 +20,7 @@ data class Album(
     var description: String? = null,
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    val createdAt: OffsetDateTime = OffsetDateTime.now(),
+    var createdAt: OffsetDateTime? = null,
 
     @OneToMany(cascade = [(CascadeType.ALL)], orphanRemoval = true, fetch = FetchType.EAGER)
     @JoinTable(
@@ -37,11 +37,19 @@ data class Album(
         const val TABLE_NAME = "album"
     }
 
+    @PrePersist
+    protected fun onCreate() {
+        if (createdAt == null) {
+            createdAt = OffsetDateTime.now() // Only set for new entity
+        }
+    }
+
     fun toDto(): AlbumDto = AlbumDto(
         albumId = albumId,
         title = title,
         description = description,
-        media = media.map { it.toDto() }.toMutableList()
+        media = media.map { it.toDto() }.toMutableList(),
+        createdAt = createdAt ?: OffsetDateTime.now()
     )
 
 }

@@ -17,7 +17,7 @@ data class TripDto(
     val albums: List<AlbumDto> = emptyList(),
 
     @get:JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    val createdAt : OffsetDateTime = OffsetDateTime.now(),
+    val createdAt : OffsetDateTime? = null,
 ) {
     fun toTrip() = Trip(
         tripId = tripId,

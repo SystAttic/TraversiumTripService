@@ -11,7 +11,7 @@ data class AlbumDto(
     val media: List<MediaDto> = emptyList(),
 
     @get:JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    val createdAt : OffsetDateTime = OffsetDateTime.now(),
+    val createdAt : OffsetDateTime? = null,
 ) {
     fun toAlbum(): Album = Album(
         albumId = albumId,

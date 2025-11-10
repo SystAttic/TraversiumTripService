@@ -31,11 +31,24 @@ data class Media(
     @Column(name="geo_location")
     val geoLocation: String? = null, // will store coordinates
 
-    @Column(name = "created_at", nullable = false)
-    val createdAt: OffsetDateTime? = OffsetDateTime.now()
+    @Column(name = "created_at", nullable = false, updatable = false)
+    var createdAt: OffsetDateTime? = null,
+
+    @Column(name = "uploaded_at", nullable = false, updatable = false)
+    var uploadedAt: OffsetDateTime? = null
 ) {
     companion object {
         const val TABLE_NAME = "media"
+    }
+
+    @PrePersist
+    protected fun onCreate() {
+        if (createdAt == null) {
+            createdAt = OffsetDateTime.now() // Only set for new entity
+        }
+        if (uploadedAt == null) {
+            uploadedAt = OffsetDateTime.now() // Only set for new entity
+        }
     }
 
     fun toDto(): MediaDto = MediaDto(
@@ -46,7 +59,8 @@ data class Media(
         fileFormat = fileFormat,
         fileSize = fileSize,
         geoLocation = geoLocation,
-        createdAt = createdAt
+        createdAt = createdAt,
+        uploadedAt = uploadedAt
     )
 
 }
