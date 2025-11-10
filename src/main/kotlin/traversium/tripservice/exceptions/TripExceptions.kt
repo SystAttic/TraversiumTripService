@@ -6,9 +6,9 @@ class TripWithoutAlbumsException(id: Long) : RuntimeException("Trip with ID '$id
 
 class InvalidTripDataException() : RuntimeException("Invalid trip data")
 class TripWithoutCollaboratorException(tripId: Long, collaboratorId: String) : RuntimeException("Trip $tripId has no collaborator $collaboratorId.")
-class TripHasCollaboratorException(tripId: Long, collaboratorId: String) : RuntimeException("Collaborator with ID '$collaboratorId' already exists in trip with ID $tripId.")
+class TripHasCollaboratorException(collaboratorId: String) : RuntimeException("Collaborator with ID '$collaboratorId' already exists in trip.")
 
 class TripWithoutViewerException(tripId: Long, viewerId: String) : RuntimeException("Trip $tripId has no viewer $viewerId.")
-class TripHasViewerException(tripId: Long, viewerId: String) : RuntimeException("Viewer with ID '$viewerId' already exists in trip with ID $tripId.")
+class TripHasViewerException(viewerId: String) : RuntimeException("Viewer with ID '$viewerId' already exists in trip.")
 
 class TripUnauthorizedException(message: String) : RuntimeException(message)

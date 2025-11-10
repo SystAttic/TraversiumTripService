@@ -12,10 +12,12 @@ import org.springframework.web.bind.annotation.*
 import traversium.tripservice.dto.AlbumDto
 import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.AlbumNotFoundException
+import traversium.tripservice.exceptions.AlbumUnauthorizedException
 import traversium.tripservice.exceptions.TripAlreadyExistsException
 import traversium.tripservice.exceptions.TripHasCollaboratorException
 import traversium.tripservice.exceptions.TripHasViewerException
 import traversium.tripservice.exceptions.TripNotFoundException
+import traversium.tripservice.exceptions.TripUnauthorizedException
 import traversium.tripservice.exceptions.TripWithoutCollaboratorException
 import traversium.tripservice.exceptions.TripWithoutViewerException
 import traversium.tripservice.service.TripService
@@ -55,7 +57,7 @@ class TripController(
             logger.info("Trips found.")
             ResponseEntity.ok(trips)
         } catch (_: TripNotFoundException){
-            logger.error("No trips found.")
+            logger.warn("No trips found.")
             ResponseEntity.notFound().build()
         }
     }
@@ -95,9 +97,13 @@ class TripController(
             logger.info("Trip $tripId found.")
             ResponseEntity.ok(trip)
         } catch (_: TripNotFoundException){
-            logger.info("Trip $tripId not found.")
+            logger.warn("Trip $tripId not found.")
             ResponseEntity.notFound().build()
+        } catch (e: TripUnauthorizedException){
+            logger.warn(e.message.toString())
+            ResponseEntity.status(HttpStatus.FORBIDDEN).build()
         }
+
     }
 
     @GetMapping("/owner/{ownerId}")
@@ -132,10 +138,10 @@ class TripController(
     ): ResponseEntity<List<TripDto>> {
         return try {
             val trips = tripService.getTripsByOwner(ownerId)
-            logger.info("Trips found.")
+            logger.info("Trips by owner $ownerId found.")
             ResponseEntity.ok(trips)
         } catch (_: TripNotFoundException){
-            logger.info("No trips found.")
+            logger.warn("No trips by owner $ownerId found.")
             ResponseEntity.notFound().build()
         }
     }
@@ -179,15 +185,16 @@ class TripController(
             logger.info("Trip ${trip.tripId} created.")
             ResponseEntity.ok(trip)
         } catch (_: TripAlreadyExistsException) {
-            logger.info("Trip ${tripDto.tripId} already exists.")
+            logger.warn("Trip ${tripDto.tripId} already exists.")
             ResponseEntity.status(HttpStatus.CONFLICT).build()
         } catch (_: TripHasViewerException) {
-            logger.info("Trip $tripDto.tripId already has a viewer or is an owner.")
+            logger.warn("Trip already has a viewer.")
             ResponseEntity.badRequest().body(tripDto)
         } catch (_: TripHasCollaboratorException) {
-            logger.info("Trip $tripDto.tripId already has a collaborator or is an owner.")
+            logger.warn("Trip already has a collaborator.")
             ResponseEntity.badRequest().build()
-        } catch (_: Exception){
+        } catch (e: Exception){
+            logger.warn(e.message.toString())
             ResponseEntity.badRequest().build()
         }
     }
@@ -227,13 +234,17 @@ class TripController(
         @RequestBody tripDto: TripDto
     ): ResponseEntity<TripDto> {
         return try {
-            val trip = tripService.updateTrip( tripDto)
+            val trip = tripService.updateTrip(tripDto)
             logger.info("Trip ${trip.tripId} updated.")
             ResponseEntity.ok(trip)
         } catch (_: TripNotFoundException) {
-            logger.info("Trip ${tripDto.tripId} not found.")
+            logger.warn("Trip ${tripDto.tripId} not found.")
             ResponseEntity.notFound().build()
-        } catch (_: Exception){
+        } catch (_: TripUnauthorizedException) {
+            logger.warn("")
+            ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+        } catch (e: Exception){
+            logger.warn(e.message.toString())
             ResponseEntity.badRequest().build()
         }
     }
@@ -265,7 +276,7 @@ class TripController(
             logger.info("Trip $tripId deleted.")
             ResponseEntity.ok().build()
         } catch (_: TripNotFoundException){
-            logger.info("Trip $tripId not found.")
+            logger.warn("Trip $tripId not found.")
             ResponseEntity.notFound().build()
         }
     }
@@ -309,9 +320,10 @@ class TripController(
             logger.info("Trips by collaborator $collaboratorId found.")
             ResponseEntity.ok(trips)
         } catch (_: TripNotFoundException) {
-            logger.info("No trips by collaborator $collaboratorId found.")
+            logger.warn("No trips by collaborator $collaboratorId found.")
             ResponseEntity.notFound().build()
-        } catch (_: Exception) {
+        } catch (e: Exception){
+            logger.warn(e.message.toString())
             ResponseEntity.badRequest().build()
         }
     }
@@ -352,10 +364,10 @@ class TripController(
             logger.info("Collaborator $collaboratorId successfully added to trip $tripId.")
             ResponseEntity.ok(trip)
         } catch (_: TripNotFoundException) {
-            logger.info("Trip $tripId not found.")
+            logger.warn("Trip $tripId not found.")
             ResponseEntity.notFound().build()
         } catch (_: TripHasCollaboratorException) {
-            logger.info("Collaborator with ID $collaboratorId already exists in trip $tripId.")
+            logger.warn("Collaborator with ID $collaboratorId already exists in trip $tripId.")
             ResponseEntity.status(HttpStatus.CONFLICT).build()
         }
     }
@@ -391,10 +403,13 @@ class TripController(
             tripService.deleteCollaboratorFromTrip(tripId, collaboratorId)
             ResponseEntity.ok().build()
         } catch (_: TripNotFoundException) {
-            logger.info("No trip $tripId found.")
+            logger.warn("No trip $tripId found.")
             ResponseEntity.notFound().build()
         } catch (_: TripWithoutCollaboratorException) {
-            logger.info("No collaborator $collaboratorId in trip $tripId found.")
+            logger.warn("No collaborator $collaboratorId in trip $tripId found.")
+            ResponseEntity.badRequest().build()
+        } catch (e: Exception){
+            logger.warn(e.message.toString())
             ResponseEntity.badRequest().build()
         }
     }
@@ -420,10 +435,6 @@ class TripController(
                 responseCode = "404",
                 description = "No trips found.",
             ),
-//            ApiResponse(
-//                responseCode = "409",
-//                description = "Bad request - invalid viewer data",
-//            ),
             ApiResponse(
                 responseCode = "500",
                 description = "Internal server error.",
@@ -436,10 +447,8 @@ class TripController(
             logger.info("Viewed trips found.")
             ResponseEntity.ok(trips)
         } catch (_: TripNotFoundException) {
-            logger.info("No viewed trips found.")
+            logger.warn("No viewed trips found.")
             ResponseEntity.notFound().build()
-        } catch (_: Exception) {
-            ResponseEntity.badRequest().build()
         }
     }
 
@@ -479,10 +488,10 @@ class TripController(
             logger.info("Viewer $viewerId successfully added to trip $tripId.")
             ResponseEntity.ok(trip)
         } catch (_: TripNotFoundException) {
-            logger.info("Trip $tripId not found.")
+            logger.warn("Trip $tripId not found.")
             ResponseEntity.notFound().build()
         } catch (_: TripHasViewerException) {
-            logger.info("Viewer with ID $viewerId already exists in trip $tripId.")
+            logger.warn("Viewer with ID $viewerId already exists in trip $tripId.")
             ResponseEntity.status(HttpStatus.CONFLICT).build()
         }
     }
@@ -519,10 +528,10 @@ class TripController(
             logger.info("Viewer $viewerId successfully removed from trip $tripId.")
             ResponseEntity.ok().build()
         } catch (_: TripNotFoundException) {
-            logger.info("Trip $tripId not found.")
+            logger.warn("Trip $tripId not found.")
             ResponseEntity.notFound().build()
         } catch (_: TripWithoutViewerException) {
-            logger.info("No viewer $viewerId found in trip $tripId.")
+            logger.warn("No viewer $viewerId found in trip $tripId.")
             ResponseEntity.badRequest().build()
         }
     }
@@ -559,7 +568,7 @@ class TripController(
             logger.info("Album $albumId retrieved from trip $trip.")
             ResponseEntity.ok(trip)
         } catch (_: AlbumNotFoundException) {
-            logger.info("No albums in trip $tripId found.")
+            logger.warn("No albums in trip $tripId found.")
             ResponseEntity.notFound().build()
         }
     }
@@ -599,9 +608,10 @@ class TripController(
             logger.info("Album ${dto.title} added to trip $tripId.")
             ResponseEntity.ok(trip)
         } catch (_: TripNotFoundException) {
-            logger.info("Trip $tripId not found.")
+            logger.warn("Trip $tripId not found.")
             ResponseEntity.notFound().build()
         } catch (_: Exception) {
+            logger.warn("Invalid album data provided.")
             ResponseEntity.badRequest().build()
         }
     }
@@ -614,6 +624,10 @@ class TripController(
             ApiResponse(
                 responseCode = "200",
                 description = "Album successfully deleted from trip.",
+            ),
+            ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to delete album.",
             ),
             ApiResponse(
                 responseCode = "404",
@@ -631,10 +645,16 @@ class TripController(
     ): ResponseEntity<Void> {
         return try {
             tripService.deleteAlbumFromTrip(tripId, albumId)
+            logger.info("Album $albumId deleted from trip $tripId.")
             ResponseEntity.ok().build()
-        } catch (_: TripNotFoundException){
+        } catch (_: TripNotFoundException) {
+            logger.warn("Trip $tripId not found.")
             ResponseEntity.notFound().build()
+        } catch (_: AlbumUnauthorizedException) {
+            logger.warn("User is not authorized to delete album $albumId.")
+            ResponseEntity.status(HttpStatus.FORBIDDEN).build()
         } catch (_: Exception){
+            logger.warn("Album $albumId for trip $tripId not found.")
             ResponseEntity.badRequest().build()
         }
     }
@@ -666,7 +686,7 @@ class TripController(
             logger.info("All media retrieved from trip $tripId.")
             ResponseEntity.ok(allMedia)
         } catch (_: TripNotFoundException) {
-            logger.info("Trip $tripId not found.")
+            logger.warn("Trip $tripId not found.")
             ResponseEntity.notFound().build()
         }
 

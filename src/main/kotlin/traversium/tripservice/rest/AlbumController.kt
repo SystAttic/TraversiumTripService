@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
-import org.apache.coyote.Response
 import org.apache.logging.log4j.kotlin.logger
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -12,7 +11,6 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import traversium.tripservice.dto.AlbumDto
 import traversium.tripservice.dto.MediaDto
-import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.*
 import traversium.tripservice.service.AlbumService
 
@@ -51,7 +49,7 @@ class AlbumController(
             logger.info("Found ${albums.size} albums")
             ResponseEntity.ok(albums)
         } catch (_: AlbumNotFoundException) {
-            logger.info("")
+            logger.warn("No albums found")
             ResponseEntity.notFound().build()
         }
 
@@ -68,6 +66,10 @@ class AlbumController(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = AlbumDto::class)
                 )]
+            ),
+            ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to view album."
             ),
             ApiResponse(
                 responseCode = "404",
@@ -87,8 +89,11 @@ class AlbumController(
             logger.info("Album ${album.albumId} found.")
             ResponseEntity.ok(album)
         } catch (_: AlbumNotFoundException) {
-            logger.info("Album with ID $albumId not found.")
+            logger.warn("Album with ID $albumId not found.")
             ResponseEntity.notFound().build()
+        } catch (_: AlbumUnauthorizedException) {
+            logger.warn("User is not authorized to view album $albumId.")
+            ResponseEntity.status(HttpStatus.FORBIDDEN).build()
         }
     }
 
@@ -105,6 +110,11 @@ class AlbumController(
                     schema = Schema(implementation = AlbumDto::class)
                 )]
             ),
+            ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to update album."
+            ),
+            ApiResponse(),
             ApiResponse(
                 responseCode = "404",
                 description = "Album not found.",
@@ -128,9 +138,13 @@ class AlbumController(
             logger.info("Album ${album.albumId} updated.")
             ResponseEntity.ok(album)
         } catch (_: AlbumNotFoundException) {
-            logger.info("Album ${albumDto.albumId} not found.")
+            logger.warn("Album ${albumDto.albumId} not found.")
             ResponseEntity.notFound().build()
+        } catch(_: AlbumUnauthorizedException) {
+            logger.warn("User is not authorized to update album $albumId.")
+            ResponseEntity.status(HttpStatus.FORBIDDEN).build()
         } catch (_: Exception){
+            logger.warn("Bad request - invalid album data.")
             ResponseEntity.badRequest().build()
         }
     }
@@ -147,6 +161,10 @@ class AlbumController(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = MediaDto::class)
                 )]
+            ),
+            ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to get album media."
             ),
             ApiResponse(
                 responseCode = "404",
@@ -166,9 +184,17 @@ class AlbumController(
             val media = albumService.getMediaFromAlbum(albumId, mediaId)
             logger.info("Media $mediaId found for album $albumId.")
             ResponseEntity.ok(media)
-
         } catch(_: MediaNotFoundException) {
-            logger.info("No media with ID $mediaId found for album $albumId.")
+            logger.warn("No media with ID $mediaId found for album $albumId.")
+            ResponseEntity.notFound().build()
+        } catch (_: AlbumWithoutMediaException) {
+            logger.warn("Album $albumId has no media.")
+            ResponseEntity.notFound().build()
+        } catch (e: AlbumUnauthorizedException) {
+            logger.warn(e.message.toString())
+            ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+        } catch (e: AlbumNotFoundException) {
+            logger.warn(e.message.toString())
             ResponseEntity.notFound().build()
         }
     }
@@ -185,6 +211,10 @@ class AlbumController(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = AlbumDto::class)
                 )]
+            ),
+            ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to add media.",
             ),
             ApiResponse(
                 responseCode = "404",
@@ -206,12 +236,16 @@ class AlbumController(
     ) : ResponseEntity<AlbumDto> {
         return try {
             val album = albumService.addMediaToAlbum(albumId, mediaDto)
-            logger.info("Media ${mediaDto.mediaId} added to album $albumId.")
+            logger.info("Media added to album $albumId.")
             ResponseEntity.ok(album)
         } catch (_: AlbumNotFoundException) {
-            logger.info("Album $albumId not found.")
+            logger.warn("Album $albumId not found.")
             ResponseEntity.notFound().build()
-        } catch (_: Exception) {
+        } catch (_: AlbumUnauthorizedException) {
+            logger.warn("User is not authorized to modify album $albumId.")
+            ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+        } catch (_: IllegalArgumentException) {
+            logger.warn("Bad request - invalid media data provided.")
             ResponseEntity.badRequest().build()
         }
     }
@@ -224,6 +258,10 @@ class AlbumController(
             ApiResponse(
                 responseCode = "200",
                 description = "Media successfully deleted from album.",
+            ),
+            ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to delete media.",
             ),
             ApiResponse(
                 responseCode = "404",
@@ -243,10 +281,14 @@ class AlbumController(
             albumService.deleteMediaFromAlbum(albumId, mediaId)
             logger.info("Media $mediaId has been deleted from album $albumId.")
             ResponseEntity.ok().build()
-        } catch (_: AlbumNotFoundException){
-            logger.info("Album $albumId not found.")
+        } catch (_: AlbumNotFoundException) {
+            logger.warn("Album $albumId not found.")
             ResponseEntity.notFound().build()
-        } catch (_: Exception){
+        } catch (_: AlbumUnauthorizedException) {
+            logger.warn("User is not authorized to modify album $albumId.")
+            ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+        } catch (_: MediaNotFoundException){
+            logger.warn("No media with ID $mediaId found for album $albumId.")
             ResponseEntity.badRequest().build()
         }
     }

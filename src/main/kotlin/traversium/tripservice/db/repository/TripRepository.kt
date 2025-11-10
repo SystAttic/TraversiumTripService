@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
 import traversium.tripservice.db.model.Trip
+import java.util.Optional
 
 @Repository
 interface TripRepository : JpaRepository<Trip, Long> {
@@ -94,4 +95,34 @@ interface TripRepository : JpaRepository<Trip, Long> {
             )
     """)
     fun findOwnedForBlocking(ownerId: String, blockedId: String): List<Trip>
+
+    @Query("""
+        SELECT t.tripId 
+        FROM Trip t 
+        JOIN t.albums a 
+        WHERE a.albumId = :albumId
+    """)
+    fun findTripIdByAlbumId(albumId: Long): Optional<Long>
+
+    @Query("""
+        SELECT t.tripId 
+        FROM Trip t 
+        JOIN t.albums a 
+        JOIN a.media m
+        WHERE m.mediaId = :mediaId
+    """)
+    fun findTripIdByMediaId(mediaId: Long): Optional<Long>
+
+    @Query("""
+        SELECT 
+            CASE WHEN t.visibility = 1 THEN TRUE
+            WHEN t.ownerId = :userId THEN TRUE
+            WHEN :userId MEMBER OF t.collaborators THEN TRUE
+            WHEN :userId MEMBER OF t.viewers THEN TRUE
+            ELSE FALSE
+        END
+        FROM Trip t
+        WHERE t.tripId = :tripId
+    """)
+    fun isUserAuthorizedToView(tripId: Long, userId: String): Boolean
 }

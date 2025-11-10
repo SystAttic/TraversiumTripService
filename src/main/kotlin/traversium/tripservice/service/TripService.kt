@@ -26,21 +26,20 @@ class TripService(
 ) {
     private fun validateCollaborator(trip: Trip, collaboratorId: String) {
         if (trip.collaborators.contains(collaboratorId)) {
-            throw TripHasCollaboratorException(trip.tripId!!, collaboratorId)
+            throw TripHasCollaboratorException(collaboratorId)
         }
     }
 
     private fun validateViewer(trip: Trip, viewerId: String) {
-        if (trip.viewers.contains(viewerId) || trip.ownerId == viewerId) {
-            throw TripHasViewerException(trip.tripId!!, viewerId)
+        if (trip.viewers.contains(viewerId)) {
+            throw TripHasViewerException(viewerId)
         }
     }
 
     private fun isUserAuthorizedToView(trip: Trip, userId: String): Boolean {
         // Check if the trip is PUBLIC, or if the user is a collaborator, or a viewer
-        return trip.visibility == Visibility.PUBLIC ||
-                trip.collaborators.contains(userId) ||
-                trip.viewers.contains(userId)
+        return tripRepository.isUserAuthorizedToView(trip.tripId!!, userId)
+
     }
 
     private fun getFirebaseIdFromContext(): String =
@@ -54,6 +53,8 @@ class TripService(
     fun getAllTrips(): List<TripDto> {
         val firebaseId = getFirebaseIdFromContext()
         val trips = tripRepository.findAllAccessibleTripsByUserId(firebaseId) // get all trips, where the user is owner, collaborator or viewer
+        if(trips.isEmpty())
+            throw TripNotFoundException(0)
 
         return trips.map { it.toDto() }
     }
@@ -93,7 +94,7 @@ class TripService(
         if (
             //dto.ownerId == null ||
             dto.title == null || dto.tripId != null) {
-            throw IllegalArgumentException("Owner ID and title cannot be null, new trip cannot have tripId")
+            throw IllegalArgumentException("Trip title cannot be null.")
         }
 
         val firebaseId = getFirebaseIdFromContext()
@@ -117,7 +118,11 @@ class TripService(
             trip.viewers.add(viewerId)
         }
 
-        val saved = tripRepository.save(trip)
+        val saved = try {
+            tripRepository.save(trip)
+        } catch (_: Exception) {
+            throw IllegalArgumentException()
+        }
 
         // Kafka event - Trip CREATE
         eventPublisher.publishEvent(
@@ -186,10 +191,15 @@ class TripService(
     */
     fun getTripsByCollaborator(collaboratorId: String): List<TripDto> {
         val firebaseId = getFirebaseIdFromContext()
-        return if (collaboratorId == firebaseId)
+        val trips = if (collaboratorId == firebaseId)
             tripRepository.findByCollaboratorId(firebaseId).map { it.toDto() }
         else
             tripRepository.findByCollaboratorId(collaboratorId, firebaseId).map { it.toDto() }
+
+        if (trips.isEmpty())
+            throw TripNotFoundException(0)
+        else
+            return trips
     }
 
     @Transactional
@@ -252,6 +262,8 @@ class TripService(
     fun getTripsByViewer(): List<TripDto>{
         val firebaseId = getFirebaseIdFromContext()
         val trips = tripRepository.findByViewerId(firebaseId)
+        if (trips.isEmpty())
+            throw TripNotFoundException(0)
 
         return trips.map { it.toDto() }
     }
@@ -329,7 +341,7 @@ class TripService(
         val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
 
         val firebaseId = getFirebaseIdFromContext()
-        if (firebaseId != trip.ownerId || !trip.collaborators.contains(firebaseId))
+        if (!trip.collaborators.contains(firebaseId))
             throw TripUnauthorizedException("User is not authorized to perform this operation.")
 
         trip.albums.add(dto.toAlbum())
@@ -350,7 +362,7 @@ class TripService(
         val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
 
         val firebaseId = getFirebaseIdFromContext()
-        if (firebaseId != trip.ownerId || !trip.collaborators.contains(firebaseId)) {
+        if (!trip.collaborators.contains(firebaseId)) {
             throw TripUnauthorizedException("User is not authorized to perform this operation.")
         }
 

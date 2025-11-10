@@ -1,5 +1,6 @@
 package traversium.tripservice.rest
 
+import com.google.protobuf.Api
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import traversium.tripservice.dto.MediaDto
 import traversium.tripservice.exceptions.MediaNotFoundException
+import traversium.tripservice.exceptions.MediaUnauthorizedException
 import traversium.tripservice.service.MediaService
 
 @RestController
@@ -33,6 +35,10 @@ class MediaController(
                 )]
             ),
             ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to view media.",
+            ),
+            ApiResponse(
                 responseCode = "404",
                 description = "No media found."
             ),
@@ -48,7 +54,7 @@ class MediaController(
             logger.info("All media retrieved.")
             ResponseEntity.ok(media)
         } catch (_: MediaNotFoundException) {
-            logger.info("No media found.")
+            logger.warn("No media found.")
             ResponseEntity.notFound().build()
         }
     }
@@ -67,6 +73,10 @@ class MediaController(
                 )]
             ),
             ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to view media."
+            ),
+            ApiResponse(
                 responseCode = "404",
                 description = "Media not found."
             ),
@@ -83,24 +93,31 @@ class MediaController(
             val media = mediaService.getMediaById(mediaId)
             logger.info("Media $mediaId retrieved.")
             ResponseEntity.ok(media)
-        } catch (_: MediaNotFoundException) {
+        } catch (e: MediaUnauthorizedException) {
+            logger.warn("User unauthorized to view media $mediaId.")
+            ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+        }catch (_: MediaNotFoundException) {
             logger.info("No media by ID $mediaId found.")
             ResponseEntity.notFound().build()
         }
     }
 
-    @GetMapping("(/owner/{ownerId})")
+    @GetMapping("uploader/{uploaderId}")
     @Operation(
-        summary = "Get media by owner",
-        description = "Gets media by owner ID",
+        summary = "Get media by uploader",
+        description = "Gets media by uploader ID",
         responses = [
             ApiResponse(
                 responseCode = "200",
-                description = "Media by ownerId returned",
+                description = "Media by uploader returned",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = MediaDto::class)
                 )]
+            ),
+            ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to get media."
             ),
             ApiResponse(
                 responseCode = "404",
@@ -112,15 +129,15 @@ class MediaController(
             )
         ]
     )
-    fun getMediaByOwner(
-        @PathVariable ownerId: String
+    fun getMediaByUploader(
+        @PathVariable uploaderId: String
     ) : ResponseEntity<List<MediaDto>> {
         return try {
-            val media = mediaService.getMediaByOwner(ownerId)
-            logger.info("Media by ownerId $ownerId found.")
+            val media = mediaService.getMediaByUploader(uploaderId)
+            logger.info("Media found.")
             ResponseEntity.ok(media)
         } catch (_: MediaNotFoundException) {
-            logger.info("No media by owner $ownerId found.")
+            logger.info("No media found.")
             ResponseEntity.notFound().build()
         }
     }
