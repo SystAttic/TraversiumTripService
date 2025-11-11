@@ -1,5 +1,6 @@
 package traversium.tripservice.service
 
+import org.springframework.data.domain.PageRequest
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -41,6 +42,18 @@ class MediaService(
         return media.map { it.toDto() }
     }
 
+    fun getAllMedia(offset: Int, limit: Int): List<MediaDto> {
+        val firebaseId = getFirebaseIdFromContext()
+        val pageable = PageRequest.of(offset / limit, limit)
+
+        val media = mediaRepository.findAllAccessibleMediaByUserId(firebaseId, pageable)
+
+        if (media.isEmpty()) {
+            throw MediaNotFoundException(0) // 0 implies general 'no accessible media'
+        }
+        return media.map { it.toDto() }
+    }
+
     fun getMediaById(mediaId: Long): MediaDto {
         val firebaseId = getFirebaseIdFromContext()
 
@@ -53,6 +66,18 @@ class MediaService(
         val firebaseId = getFirebaseIdFromContext()
 
         val media = mediaRepository.findAccessibleMediaByUploader(uploaderId, firebaseId)
+
+        if (media.isEmpty()) {
+            throw MediaNotFoundException(0)
+        }
+        return media.map { it.toDto() }
+    }
+
+    fun getMediaByUploader(uploaderId: String, offset: Int, limit: Int): List<MediaDto> {
+        val firebaseId = getFirebaseIdFromContext()
+        val pageable = PageRequest.of(offset / limit, limit)
+
+        val media = mediaRepository.findAccessibleMediaByUploader(uploaderId, firebaseId, pageable)
 
         if (media.isEmpty()) {
             throw MediaNotFoundException(0)

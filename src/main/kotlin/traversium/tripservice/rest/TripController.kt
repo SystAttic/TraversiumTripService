@@ -51,9 +51,12 @@ class TripController(
             )
         ]
     )
-    fun getAllTrips(): ResponseEntity<List<TripDto>> {
+    fun getAllTrips(
+        @RequestParam(defaultValue = "0") offset: Int,
+        @RequestParam(defaultValue = "20") limit: Int
+    ): ResponseEntity<List<TripDto>> {
         return try {
-            val trips = tripService.getAllTrips()
+            val trips = tripService.getAllTrips(offset, limit)
             logger.info("Trips found.")
             ResponseEntity.ok(trips)
         } catch (_: TripNotFoundException){
@@ -135,9 +138,11 @@ class TripController(
     )
     fun getTripsByOwner(
         @PathVariable ownerId: String,
+        @RequestParam(defaultValue = "0") offset: Int,
+        @RequestParam(defaultValue = "20") limit: Int
     ): ResponseEntity<List<TripDto>> {
         return try {
-            val trips = tripService.getTripsByOwner(ownerId)
+            val trips = tripService.getTripsByOwner(ownerId, offset, limit)
             logger.info("Trips by owner $ownerId found.")
             ResponseEntity.ok(trips)
         } catch (_: TripNotFoundException){
@@ -313,10 +318,12 @@ class TripController(
         ]
     )
     fun getTripsByCollaborator(
-        @PathVariable collaboratorId: String
+        @PathVariable collaboratorId: String,
+        @RequestParam(defaultValue = "0") offset: Int,
+        @RequestParam(defaultValue = "20") limit: Int
     ) : ResponseEntity<List<TripDto>> {
         return try {
-            val trips = tripService.getTripsByCollaborator(collaboratorId)
+            val trips = tripService.getTripsByCollaborator(collaboratorId, offset, limit)
             logger.info("Trips by collaborator $collaboratorId found.")
             ResponseEntity.ok(trips)
         } catch (_: TripNotFoundException) {
@@ -441,9 +448,12 @@ class TripController(
             )
         ]
     )
-    fun getTripsByViewer() : ResponseEntity<List<TripDto>> {
+    fun getTripsByViewer(
+        @RequestParam(defaultValue = "0") offset: Int,
+        @RequestParam(defaultValue = "20") limit: Int
+    ) : ResponseEntity<List<TripDto>> {
         return try {
-            val trips = tripService.getTripsByViewer()
+            val trips = tripService.getTripsByViewer(offset, limit)
             logger.info("Viewed trips found.")
             ResponseEntity.ok(trips)
         } catch (_: TripNotFoundException) {
@@ -690,6 +700,44 @@ class TripController(
             ResponseEntity.notFound().build()
         }
 
+    }
+
+    @GetMapping("/search")
+    @Operation(
+        summary = "Search trips by title",
+        description = "Search trips by title with partial matching and pagination.",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Trips found.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = TripDto::class)
+                )]
+            ),
+            ApiResponse(
+                responseCode = "400",
+                description = "Bad Request - Invalid query parameter."
+            ),
+            ApiResponse(
+                responseCode = "500",
+                description = "Internal server error."
+            )
+        ]
+    )
+    fun searchTripsByTitle(
+        @RequestParam query: String,
+        @RequestParam(defaultValue = "0") offset: Int,
+        @RequestParam(defaultValue = "20") limit: Int
+    ): ResponseEntity<List<TripDto>> {
+        return try {
+            val trips = tripService.searchTripsByTitle(query, offset, limit)
+            logger.info("Found ${trips.size} trips matching query '$query'")
+            ResponseEntity.ok(trips)
+        } catch (e: Exception) {
+            logger.warn("Error searching trips: ${e.message}")
+            ResponseEntity.badRequest().build()
+        }
     }
 
 }

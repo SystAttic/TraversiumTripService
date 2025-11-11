@@ -1,6 +1,7 @@
 package traversium.tripservice.service
 
 import org.springframework.context.ApplicationEventPublisher
+import org.springframework.data.domain.PageRequest
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -64,6 +65,17 @@ class AlbumService(
         val firebaseId = getFirebaseIdFromContext()
         // This repository method is already assumed to handle security filtering.
         val albums = albumRepository.findAllAccessibleAlbumsByUserId(firebaseId)
+
+        if(albums.isEmpty())
+            throw AlbumNotFoundException(0)
+
+        return albums.map { it.toDto() }
+    }
+
+    fun getAllAlbums(offset: Int, limit: Int): List<AlbumDto> {
+        val firebaseId = getFirebaseIdFromContext()
+        val pageable = PageRequest.of(offset / limit, limit)
+        val albums = albumRepository.findAllAccessibleAlbumsByUserId(firebaseId, pageable)
 
         if(albums.isEmpty())
             throw AlbumNotFoundException(0)

@@ -1,7 +1,9 @@
 package traversium.tripservice.db.repository
 
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 import traversium.tripservice.db.model.Trip
 import java.util.Optional
@@ -22,6 +24,19 @@ interface TripRepository : JpaRepository<Trip, Long> {
     """)
     fun findAllAccessibleTripsByUserId(userId: String): List<Trip>
 
+    // user gets all trips from his own profile (paginated)
+    @Query("""
+        SELECT DISTINCT t 
+        FROM Trip t 
+        LEFT JOIN t.collaborators c
+        LEFT JOIN t.viewers v
+        WHERE
+            t.ownerId = :userId OR 
+            c = :userId OR 
+            v = :userId
+    """)
+    fun findAllAccessibleTripsByUserId(userId: String, pageable: Pageable): List<Trip>
+
     // user gets all owned trips
     @Query("""
         SELECT DISTINCT t 
@@ -32,6 +47,17 @@ interface TripRepository : JpaRepository<Trip, Long> {
             t.ownerId = :ownerId
     """)
     fun findByOwnerId(ownerId: String): List<Trip>
+
+    // user gets all owned trips (paginated)
+    @Query("""
+        SELECT DISTINCT t 
+        FROM Trip t 
+        LEFT JOIN t.collaborators c
+        LEFT JOIN t.viewers v
+        WHERE 
+            t.ownerId = :ownerId
+    """)
+    fun findByOwnerId(ownerId: String, pageable: Pageable): List<Trip>
 
     // user gets all trips not owned by user
     @Query("""
@@ -78,9 +104,45 @@ interface TripRepository : JpaRepository<Trip, Long> {
     """)
     fun findByCollaboratorId(collaboratorId: String, userId: String): List<Trip>
 
+    // user gets all trips, where the other user is a collaborator and my user can see those trips (paginated)
+    @Query("""
+        SELECT DISTINCT t 
+        FROM Trip t 
+        LEFT JOIN t.collaborators c
+        LEFT JOIN t.viewers v 
+            where c = :collaboratorId AND 
+            (
+                t.visibility = 1 OR
+                t.ownerId = :userId OR
+                v = :userId
+            )
+    """)
+    fun findByCollaboratorId(collaboratorId: String, userId: String, pageable: Pageable): List<Trip>
+
     // user gets all trips who are viewed by the user
     @Query("select t from Trip t join t.viewers e where e = :viewerId")
     fun findByViewerId(viewerId: String): List<Trip>
+
+    // user gets all trips who are viewed by the user (paginated)
+    @Query("select t from Trip t join t.viewers e where e = :viewerId")
+    fun findByViewerId(viewerId: String, pageable: Pageable): List<Trip>
+
+    // Search trips by title (partial match, case-insensitive)
+    @Query("""
+        SELECT DISTINCT t 
+        FROM Trip t 
+        LEFT JOIN t.collaborators c
+        LEFT JOIN t.viewers v
+        WHERE 
+            LOWER(t.title) LIKE LOWER(CONCAT('%', :query, '%'))
+            AND (
+                t.visibility = 1 OR
+                t.ownerId = :userId OR
+                c = :userId OR
+                v = :userId
+            )
+    """)
+    fun searchTripsByTitle(@Param("query") query: String, @Param("userId") userId: String, pageable: Pageable): List<Trip>
 
     @Query("""
         SELECT DISTINCT t 

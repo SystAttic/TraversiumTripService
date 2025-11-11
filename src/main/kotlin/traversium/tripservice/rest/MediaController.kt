@@ -48,9 +48,12 @@ class MediaController(
             )
         ]
     )
-    fun getAllMedia(): ResponseEntity<List<MediaDto>> {
+    fun getAllMedia(
+        @RequestParam(defaultValue = "0") offset: Int,
+        @RequestParam(defaultValue = "20") limit: Int
+    ): ResponseEntity<List<MediaDto>> {
         return try {
-            val media = mediaService.getAllMedia()
+            val media = mediaService.getAllMedia(offset, limit)
             logger.info("All media retrieved.")
             ResponseEntity.ok(media)
         } catch (_: MediaNotFoundException) {
@@ -130,10 +133,12 @@ class MediaController(
         ]
     )
     fun getMediaByUploader(
-        @PathVariable uploaderId: String
+        @PathVariable uploaderId: String,
+        @RequestParam(defaultValue = "0") offset: Int,
+        @RequestParam(defaultValue = "20") limit: Int
     ) : ResponseEntity<List<MediaDto>> {
         return try {
-            val media = mediaService.getMediaByUploader(uploaderId)
+            val media = mediaService.getMediaByUploader(uploaderId, offset, limit)
             logger.info("Media found.")
             ResponseEntity.ok(media)
         } catch (_: MediaNotFoundException) {
