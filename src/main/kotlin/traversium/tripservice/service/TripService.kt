@@ -1,6 +1,7 @@
 package traversium.tripservice.service
 
 import org.springframework.context.ApplicationEventPublisher
+import org.springframework.data.domain.PageRequest
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -54,7 +55,18 @@ class TripService(
         val firebaseId = getFirebaseIdFromContext()
         val trips = tripRepository.findAllAccessibleTripsByUserId(firebaseId) // get all trips, where the user is owner, collaborator or viewer
         if(trips.isEmpty())
-            throw TripNotFoundException(0)
+            return emptyList()
+
+        return trips.map { it.toDto() }
+    }
+
+    // where user is owner, viewer or collaborator (paginated)
+    fun getAllTrips(offset: Int, limit: Int): List<TripDto> {
+        val firebaseId = getFirebaseIdFromContext()
+        val pageable = PageRequest.of(offset / limit, limit)
+        val trips = tripRepository.findAllAccessibleTripsByUserId(firebaseId, pageable)
+        if(trips.isEmpty())
+            return emptyList()
 
         return trips.map { it.toDto() }
     }
@@ -78,6 +90,22 @@ class TripService(
             tripRepository.findByOwnerId(ownerId).map { it.toDto() }
         else
             tripRepository.findByOwnerId(ownerId, firebaseId).map { it.toDto() }
+    }
+
+    // trips where user is owner (paginated)
+    fun getTripsByOwner(ownerId: String, offset: Int, limit: Int): List<TripDto> {
+        val firebaseId = getFirebaseIdFromContext()
+        val pageable = PageRequest.of(offset / limit, limit)
+        return if (ownerId == firebaseId)
+            tripRepository.findByOwnerId(ownerId, pageable).map { it.toDto() }
+        else {
+            // For other users' trips, we need to filter by visibility, but pagination is handled in memory
+            // since the repository method doesn't support pagination for this case
+            val allTrips = tripRepository.findByOwnerId(ownerId, firebaseId)
+            val start = offset.coerceAtMost(allTrips.size)
+            val end = (offset + limit).coerceAtMost(allTrips.size)
+            allTrips.subList(start, end).map { it.toDto() }
+        }
     }
 
     // trips where user is owner or collaborator
@@ -202,6 +230,20 @@ class TripService(
             return trips
     }
 
+    fun getTripsByCollaborator(collaboratorId: String, offset: Int, limit: Int): List<TripDto> {
+        val firebaseId = getFirebaseIdFromContext()
+        val pageable = PageRequest.of(offset / limit, limit)
+        val trips = if (collaboratorId == firebaseId)
+            tripRepository.findByCollaboratorId(firebaseId).map { it.toDto() }
+        else
+            tripRepository.findByCollaboratorId(collaboratorId, firebaseId, pageable).map { it.toDto() }
+
+        if (trips.isEmpty())
+            throw TripNotFoundException(0)
+        else
+            return trips
+    }
+
     @Transactional
     fun addCollaboratorToTrip(tripId: Long, collaboratorId: String): TripDto {
         val trip = tripRepository.findById(tripId)
@@ -262,6 +304,17 @@ class TripService(
     fun getTripsByViewer(): List<TripDto>{
         val firebaseId = getFirebaseIdFromContext()
         val trips = tripRepository.findByViewerId(firebaseId)
+        if (trips.isEmpty())
+            throw TripNotFoundException(0)
+
+        return trips.map { it.toDto() }
+    }
+
+    // get trips where user is a viewer (paginated)
+    fun getTripsByViewer(offset: Int, limit: Int): List<TripDto>{
+        val firebaseId = getFirebaseIdFromContext()
+        val pageable = PageRequest.of(offset / limit, limit)
+        val trips = tripRepository.findByViewerId(firebaseId, pageable)
         if (trips.isEmpty())
             throw TripNotFoundException(0)
 
@@ -419,6 +472,19 @@ class TripService(
 
         return trip.albums
             .flatMap { album -> album.media.mapNotNull { it.pathUrl } }
+    }
+
+    // Search trips by title (partial match, case-insensitive)
+    fun searchTripsByTitle(query: String, offset: Int, limit: Int): List<TripDto> {
+        if (query.isBlank()) {
+            return emptyList()
+        }
+
+        val firebaseId = getFirebaseIdFromContext()
+        val pageable = PageRequest.of(offset / limit, limit)
+        val trips = tripRepository.searchTripsByTitle(query, firebaseId, pageable)
+
+        return trips.map { it.toDto() }
     }
 
 }

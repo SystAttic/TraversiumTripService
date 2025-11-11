@@ -43,9 +43,12 @@ class AlbumController(
             )
         ]
     )
-    fun getAllAlbums(): ResponseEntity<List<AlbumDto>> {
+    fun getAllAlbums(
+        @RequestParam(defaultValue = "0") offset: Int,
+        @RequestParam(defaultValue = "20") limit: Int
+    ): ResponseEntity<List<AlbumDto>> {
         return try{
-            val albums = albumService.getAllAlbums()
+            val albums = albumService.getAllAlbums(offset, limit)
             logger.info("Found ${albums.size} albums")
             ResponseEntity.ok(albums)
         } catch (_: AlbumNotFoundException) {
