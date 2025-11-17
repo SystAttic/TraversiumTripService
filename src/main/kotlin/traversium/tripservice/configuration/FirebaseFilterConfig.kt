@@ -23,11 +23,19 @@ class FirebaseFilterConfig {
             .csrf { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests { auth ->
-                auth.requestMatchers("/rest/**").authenticated()
+                auth
+                    .requestMatchers(
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**",
+                        "/swagger-resources/**",
+                        "/swagger-ui.html"
+                    ).permitAll()
+                    .requestMatchers("/graphql").authenticated()
+                    .requestMatchers("/rest/**").authenticated()
+
                     .anyRequest().permitAll()
             }
             .addFilterBefore(firebaseAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
-            .securityMatcher("/rest/**")
 
         return http.build()
     }
