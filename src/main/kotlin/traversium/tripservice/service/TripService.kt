@@ -6,7 +6,6 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import traversium.tripservice.db.model.Trip
-import traversium.tripservice.db.model.Visibility
 import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.TripNotFoundException
 import traversium.tripservice.db.repository.TripRepository
@@ -15,8 +14,11 @@ import traversium.tripservice.exceptions.AlbumNotFoundException
 import traversium.tripservice.exceptions.*
 import traversium.tripservice.kafka.data.AlbumEvent
 import traversium.tripservice.kafka.data.AlbumEventType
+import traversium.tripservice.kafka.data.DomainEvent
+import traversium.tripservice.kafka.data.ReportingStreamData
 import traversium.tripservice.kafka.data.TripEvent
 import traversium.tripservice.kafka.data.TripEventType
+import java.time.YearMonth
 
 @Service
 @Transactional
@@ -25,6 +27,14 @@ class TripService(
     private val eventPublisher: ApplicationEventPublisher,
     private val firebaseService: FirebaseService
 ) {
+    private fun <T : DomainEvent> publishEvent(event: T) {
+        val wrapped = ReportingStreamData(
+            timestamp = YearMonth.now(),
+            action = event
+        )
+        eventPublisher.publishEvent(wrapped)
+    }
+
     private fun validateCollaborator(trip: Trip, collaboratorId: String) {
         if (trip.collaborators.contains(collaboratorId)) {
             throw TripHasCollaboratorException(collaboratorId)
@@ -108,14 +118,14 @@ class TripService(
         }
     }
 
-    // trips where user is owner or collaborator
-    fun getTripsByOwnerOrCollaborator(userId: String): List<TripDto> {
-        val firebaseId = getFirebaseIdFromContext()
-        if (userId == firebaseId)
-            return tripRepository.findByOwnerOrCollaborator(userId).map { it.toDto() }
-        else
-            throw TripUnauthorizedException("User is not authorized to perform this operation.")
-    }
+//    // trips where user is owner or collaborator
+//    fun getTripsByOwnerOrCollaborator(userId: String): List<TripDto> {
+//        val firebaseId = getFirebaseIdFromContext()
+//        if (userId == firebaseId)
+//            return tripRepository.findByOwnerOrCollaborator(userId).map { it.toDto() }
+//        else
+//            throw TripUnauthorizedException("User is not authorized to perform this operation.")
+//    }
 
     @Transactional
     fun createTrip(dto: TripDto): TripDto {
@@ -153,7 +163,7 @@ class TripService(
         }
 
         // Kafka event - Trip CREATE
-        eventPublisher.publishEvent(
+        publishEvent(
             TripEvent(
                 eventType = TripEventType.TRIP_CREATED,
                 tripId = saved.tripId,
@@ -173,7 +183,7 @@ class TripService(
             throw TripUnauthorizedException("User is not authorized to perform this operation.")
 
         // Kafka event - Trip DELETE
-        eventPublisher.publishEvent(
+        publishEvent(
             TripEvent(
                 eventType = TripEventType.TRIP_DELETED,
                 tripId = trip.tripId,
@@ -203,7 +213,7 @@ class TripService(
             createdAt = existingTrip.createdAt
         )
         // Kafka event - Trip UPDATE
-        eventPublisher.publishEvent(
+        publishEvent(
             TripEvent(
                 eventType = TripEventType.TRIP_UPDATED,
                 tripId = mergedTrip.tripId,
@@ -261,7 +271,7 @@ class TripService(
         val saved = tripRepository.save(trip)
 
         // Kafka event - Collaborator ADD
-        eventPublisher.publishEvent(
+        publishEvent(
             TripEvent(
                 eventType = TripEventType.COLLABORATOR_ADDED,
                 tripId = saved.tripId,
@@ -285,7 +295,7 @@ class TripService(
 
         if (trip.collaborators.contains(collaboratorId)) {
             // Kafka event - Collaborator DELETE
-            eventPublisher.publishEvent(
+            publishEvent(
                 TripEvent(
                     eventType = TripEventType.COLLABORATOR_DELETED,
                     tripId = trip.tripId,
@@ -337,7 +347,7 @@ class TripService(
         val saved = tripRepository.save(trip)
 
         // Kafka event - Viewer ADD
-        eventPublisher.publishEvent(
+        publishEvent(
             TripEvent(
                 eventType = TripEventType.VIEWER_ADDED,
                 tripId = saved.tripId,
@@ -359,7 +369,7 @@ class TripService(
 
         if (trip.viewers.contains(viewerId)) {
             // Kafka event - Viewer DELETE
-            eventPublisher.publishEvent(
+            publishEvent(
                 TripEvent(
                     eventType = TripEventType.VIEWER_DELETED,
                     tripId = trip.tripId,
@@ -400,7 +410,7 @@ class TripService(
         trip.albums.add(dto.toAlbum())
 
         // Kafka event - Album CREATE
-        eventPublisher.publishEvent(
+        publishEvent(
             AlbumEvent(
                 eventType = AlbumEventType.ALBUM_CREATED,
                 albumId = dto.albumId,
@@ -423,7 +433,7 @@ class TripService(
             val album = trip.albums.find { it.albumId == albumId }
 
             // Kafka event - Album DELETE
-            eventPublisher.publishEvent(
+            publishEvent(
                 AlbumEvent(
                     eventType = AlbumEventType.ALBUM_DELETED,
                     albumId = album!!.albumId,

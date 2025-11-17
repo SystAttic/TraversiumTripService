@@ -30,6 +30,7 @@ class MockFirebaseConfig {
 
         `when`(mockToken.uid).thenReturn("firebase123")
         `when`(mockToken.email).thenReturn("test@example.com")
+        `when`(mockToken.tenantId).thenReturn("default")
 
         `when`(mockUserRecord.uid).thenReturn("firebase123")
         `when`(mockUserRecord.email).thenReturn("test@example.com")

@@ -1,10 +1,10 @@
 package traversium.tripservice.kafka.data
 
-import java.time.Instant
+import java.time.OffsetDateTime
 
 data class AlbumEvent(
     val eventType: AlbumEventType,
-    val timestamp: Instant = Instant.now(),
+    override val timestamp: OffsetDateTime = OffsetDateTime.now(),
     val albumId: Long?,
     val title: String?,
-)
+) : DomainEvent
