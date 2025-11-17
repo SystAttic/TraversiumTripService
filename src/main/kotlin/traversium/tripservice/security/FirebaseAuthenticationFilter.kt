@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
+import org.springframework.util.AntPathMatcher
 import org.springframework.web.filter.OncePerRequestFilter
 import traversium.tripservice.service.FirebaseService
 import traversium.tripservice.service.TenantService
@@ -15,8 +16,12 @@ import traversium.tripservice.service.TenantService
 @Component
 class FirebaseAuthenticationFilter(
     private val firebaseService: FirebaseService,
-    private val tenantService: TenantService
-) : OncePerRequestFilter(){
+    private val tenantService: TenantService,
+    private val firebaseAuth: FirebaseAuth,
+    ) : OncePerRequestFilter(){
+    private val pathMatcher = AntPathMatcher()
+
+
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
@@ -29,11 +34,12 @@ class FirebaseAuthenticationFilter(
             }
             val token = authHeader.removePrefix("Bearer ").trim()
 
-            val decodedToken = FirebaseAuth.getInstance().verifyIdToken(token)
+            val decodedToken = firebaseAuth.verifyIdToken(token)
             val uid = decodedToken.uid
 
+
             SecurityContextHolder.getContext().authentication = TraversiumAuthentication(
-                userRecordToPrincipal(FirebaseAuth.getInstance().getUser(uid)),
+                userRecordToPrincipal(firebaseAuth.getUser(uid)),
                 null,
                 emptyList(),
                 token
@@ -55,4 +61,20 @@ class FirebaseAuthenticationFilter(
         userRecord.email,
         userRecord.photoUrl
     )
+
+    override fun shouldNotFilter(request: HttpServletRequest): Boolean {
+        val path = request.requestURI.removePrefix(request.contextPath)
+
+        val exactPaths = setOf(
+            "/rest/v1/trips/exists",
+            "/swagger-ui.html"
+        )
+        val prefixPaths = listOf(
+            "/swagger-ui",
+            "/v3/api-docs",
+            "/swagger-resources"
+        )
+
+        return path in exactPaths || prefixPaths.any { path.startsWith(it) }
+    }
 }
