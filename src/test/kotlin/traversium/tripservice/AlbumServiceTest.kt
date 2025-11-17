@@ -9,6 +9,7 @@ import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.verify
 import org.springframework.context.ApplicationEventPublisher
 import traversium.tripservice.db.model.*
 import traversium.tripservice.db.repository.AlbumRepository
@@ -20,6 +21,7 @@ import traversium.tripservice.kafka.data.AlbumEvent
 import traversium.tripservice.kafka.data.AlbumEventType
 import traversium.tripservice.kafka.data.MediaEvent
 import traversium.tripservice.kafka.data.MediaEventType
+import traversium.tripservice.kafka.data.ReportingStreamData
 import traversium.tripservice.security.BaseSecuritySetup // Assuming this path
 import traversium.tripservice.service.AlbumService
 import traversium.tripservice.service.FirebaseService
@@ -191,7 +193,12 @@ class AlbumServiceTest : BaseSecuritySetup() {
         assertEquals("New Desc", result.description)
 
         verify(eventPublisher).publishEvent(
-            argThat { event: AlbumEvent -> event.eventType == AlbumEventType.ALBUM_UPDATED }
+            argThat { event: ReportingStreamData ->
+                val action = event.action as? AlbumEvent
+                action != null &&
+                        action.eventType == AlbumEventType.ALBUM_UPDATED &&
+                        action.albumId == ALBUM_ID
+            }
         )
     }
 
@@ -294,8 +301,12 @@ class AlbumServiceTest : BaseSecuritySetup() {
         assertEquals(expectedSavedMediaId, savedMediaDto.mediaId, "The generated mediaId must be returned")
 
         verify(eventPublisher).publishEvent(
-            argThat { event: MediaEvent ->
-                event.eventType == MediaEventType.MEDIA_ADDED && event.mediaId == expectedSavedMediaId
+            argThat { event: ReportingStreamData ->
+                val action = event.action as? MediaEvent
+                action != null &&
+                        action.eventType == MediaEventType.MEDIA_ADDED &&
+                        action.mediaId == expectedSavedMediaId &&
+                        action.pathUrl == newMediaDto.pathUrl
             }
         )
         verify(albumRepository).save(any())
@@ -328,7 +339,13 @@ class AlbumServiceTest : BaseSecuritySetup() {
         assertEquals(0, album.media.size)
 
         verify(eventPublisher).publishEvent(
-            argThat { event: MediaEvent -> event.eventType == MediaEventType.MEDIA_DELETED && event.mediaId == MEDIA_ID }
+            argThat { event: ReportingStreamData ->
+                val action = event.action as? MediaEvent
+                action != null &&
+                        action.eventType == MediaEventType.MEDIA_DELETED &&
+                        action.mediaId == MEDIA_ID &&
+                        action.pathUrl == defaultMedia.pathUrl
+            }
         )
     }
 

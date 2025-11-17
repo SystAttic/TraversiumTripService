@@ -17,8 +17,11 @@ import traversium.tripservice.exceptions.MediaNotFoundException
 import traversium.tripservice.exceptions.TripNotFoundException
 import traversium.tripservice.kafka.data.AlbumEvent
 import traversium.tripservice.kafka.data.AlbumEventType
+import traversium.tripservice.kafka.data.DomainEvent
 import traversium.tripservice.kafka.data.MediaEvent
 import traversium.tripservice.kafka.data.MediaEventType
+import traversium.tripservice.kafka.data.ReportingStreamData
+import java.time.YearMonth
 
 @Service
 @Transactional
@@ -28,6 +31,14 @@ class AlbumService(
     private val eventPublisher: ApplicationEventPublisher,
     private val firebaseService: FirebaseService
 ) {
+    private fun <T : DomainEvent> publishEvent(event: T) {
+        val wrapped = ReportingStreamData(
+            timestamp = YearMonth.now(),
+            action = event
+        )
+        eventPublisher.publishEvent(wrapped)
+    }
+
     private fun getFirebaseIdFromContext(): String =
         firebaseService.extractUidFromToken(SecurityContextHolder.getContext().authentication.credentials as String)
 
@@ -107,7 +118,7 @@ class AlbumService(
             description = dto.description ?: existingAlbum.description,
         )
         // Kafka event - Album UPDATE
-        eventPublisher.publishEvent(
+        publishEvent(
             AlbumEvent(
                 eventType = AlbumEventType.ALBUM_UPDATED,
                 albumId = updatedAlbum.albumId,
@@ -163,7 +174,7 @@ class AlbumService(
             .firstOrNull { it.pathUrl == media.pathUrl && it.uploader == firebaseId }
             ?: throw IllegalArgumentException("Media not found in saved album, ID generation failed.")
 
-        eventPublisher.publishEvent(
+        publishEvent(
             MediaEvent(
                 eventType = MediaEventType.MEDIA_ADDED,
                 mediaId = savedMedia.mediaId,
@@ -188,7 +199,7 @@ class AlbumService(
                 throw MediaNotFoundException(mediaId)
             }
             // Kafka event - Media DELETE
-            eventPublisher.publishEvent(
+            publishEvent(
                 MediaEvent(
                     eventType = MediaEventType.MEDIA_DELETED,
                     mediaId = media.mediaId,

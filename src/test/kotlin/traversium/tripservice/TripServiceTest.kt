@@ -22,6 +22,7 @@ import traversium.tripservice.dto.AlbumDto
 import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.*
 import traversium.tripservice.kafka.data.AlbumEvent
+import traversium.tripservice.kafka.data.AlbumEventType
 import traversium.tripservice.kafka.data.TripEvent
 import traversium.tripservice.kafka.data.TripEventType
 import traversium.tripservice.security.BaseSecuritySetup
@@ -29,6 +30,7 @@ import traversium.tripservice.service.FirebaseService
 import traversium.tripservice.service.TripService
 import java.time.OffsetDateTime
 import java.util.*
+import traversium.tripservice.kafka.data.ReportingStreamData
 
 @ExtendWith(MockitoExtension::class)
 class TripServiceTest : BaseSecuritySetup() {
@@ -94,10 +96,12 @@ class TripServiceTest : BaseSecuritySetup() {
         assertEquals(2, result.collaborators.size)
 
         verify(tripRepository).save(any())
-        verify(eventPublisher).publishEvent(any<TripEvent>())
         verify(eventPublisher).publishEvent(
-            argThat { event: TripEvent ->
-                event.eventType == TripEventType.TRIP_CREATED && event.tripId == TRIP_ID
+            argThat { event: ReportingStreamData ->
+                val action = event.action as? TripEvent
+                action != null &&
+                        action.eventType == TripEventType.TRIP_CREATED &&
+                        action.tripId == TRIP_ID
             }
         )
     }
@@ -131,12 +135,14 @@ class TripServiceTest : BaseSecuritySetup() {
     }
 
     @Test
-    fun `getAllTrips throws not found if list is empty`() {
+    fun `getAllTrips returns empty list when user has no trips`() {
         `when`(tripRepository.findAllAccessibleTripsByUserId(OWNER_ID)).thenReturn(emptyList())
 
-        assertThrows(TripNotFoundException::class.java) {
-            tripService.getAllTrips()
-        }
+        val result = tripService.getAllTrips()
+
+        // Assert that an empty list is returned, not an exception thrown
+        assertEquals(0, result.size)
+        verify(tripRepository).findAllAccessibleTripsByUserId(OWNER_ID)
     }
 
     @Test
@@ -261,7 +267,12 @@ class TripServiceTest : BaseSecuritySetup() {
             trip.title == updatedTitle && trip.createdAt== defaultTrip.createdAt
         })
         verify(eventPublisher).publishEvent(
-            argThat { event: TripEvent -> event.eventType == TripEventType.TRIP_UPDATED }
+            argThat { event: ReportingStreamData ->
+                val action = event.action as? TripEvent
+                action != null &&
+                        action.eventType == TripEventType.TRIP_UPDATED &&
+                        action.tripId == TRIP_ID
+            }
         )
     }
 
@@ -287,7 +298,12 @@ class TripServiceTest : BaseSecuritySetup() {
 
         verify(tripRepository).delete(defaultTrip)
         verify(eventPublisher).publishEvent(
-            argThat { event: TripEvent -> event.eventType == TripEventType.TRIP_DELETED }
+            argThat { event: ReportingStreamData ->
+                val action = event.action as? TripEvent
+                action != null &&
+                        action.eventType == TripEventType.TRIP_DELETED &&
+                        action.tripId == TRIP_ID
+            }
         )
     }
 
@@ -359,7 +375,12 @@ class TripServiceTest : BaseSecuritySetup() {
 
         verify(tripRepository).save(any())
         verify(eventPublisher).publishEvent(
-            argThat { event: TripEvent -> event.eventType == TripEventType.COLLABORATOR_ADDED }
+            argThat { event: ReportingStreamData ->
+                val action = event.action as? TripEvent
+                action != null &&
+                        action.eventType == TripEventType.COLLABORATOR_ADDED &&
+                        action.tripId == TRIP_ID
+            }
         )
     }
 
@@ -393,7 +414,12 @@ class TripServiceTest : BaseSecuritySetup() {
 
         verify(tripRepository).save(any())
         verify(eventPublisher).publishEvent(
-            argThat { event: TripEvent -> event.eventType == TripEventType.COLLABORATOR_DELETED }
+            argThat { event: ReportingStreamData ->
+                val action = event.action as? TripEvent
+                action != null &&
+                        action.eventType == TripEventType.COLLABORATOR_DELETED &&
+                        action.tripId == TRIP_ID
+            }
         )
     }
 
@@ -468,7 +494,12 @@ class TripServiceTest : BaseSecuritySetup() {
 
         verify(tripRepository).save(any())
         verify(eventPublisher).publishEvent(
-            argThat { event: TripEvent -> event.eventType == TripEventType.VIEWER_ADDED }
+            argThat { event: ReportingStreamData ->
+                val action = event.action as? TripEvent
+                action != null &&
+                        action.eventType == TripEventType.VIEWER_ADDED &&
+                        action.tripId == TRIP_ID
+            }
         )
     }
 
@@ -503,7 +534,12 @@ class TripServiceTest : BaseSecuritySetup() {
 
         verify(tripRepository).save(any())
         verify(eventPublisher).publishEvent(
-            argThat { event: TripEvent -> event.eventType == TripEventType.VIEWER_DELETED }
+            argThat { event: ReportingStreamData ->
+                val action = event.action as? TripEvent
+                action != null &&
+                        action.eventType == TripEventType.VIEWER_DELETED &&
+                        action.tripId == TRIP_ID
+            }
         )
     }
 
@@ -592,7 +628,14 @@ class TripServiceTest : BaseSecuritySetup() {
         assertEquals(albumDto.title, result.albums.first().title)
 
         verify(tripRepository).save(any())
-        verify(eventPublisher).publishEvent(any<AlbumEvent>())
+        verify(eventPublisher).publishEvent(
+            argThat { event: ReportingStreamData ->
+                val action = event.action as? AlbumEvent
+                action != null &&
+                        action.eventType == AlbumEventType.ALBUM_CREATED &&
+                        action.albumId == ALBUM_ID
+            }
+        )
     }
 
     @Test
@@ -627,7 +670,12 @@ class TripServiceTest : BaseSecuritySetup() {
 
         verify(tripRepository).save(any())
         verify(eventPublisher).publishEvent(
-            argThat { event: AlbumEvent -> event.albumId == ALBUM_ID }
+            argThat { event: ReportingStreamData ->
+                val action = event.action as? AlbumEvent
+                action != null &&
+                        action.eventType == AlbumEventType.ALBUM_DELETED &&
+                        action.albumId == ALBUM_ID
+            }
         )
     }
 
