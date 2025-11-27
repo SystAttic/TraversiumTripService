@@ -8,6 +8,7 @@ import org.apache.logging.log4j.kotlin.logger
 import org.junit.jupiter.api.BeforeEach
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
@@ -31,6 +32,7 @@ import traversium.tripservice.kafka.data.TripEvent
 import traversium.tripservice.kafka.data.TripEventType
 import traversium.tripservice.security.BaseSecuritySetup
 import traversium.tripservice.security.MockFirebaseConfig
+import traversium.tripservice.security.TestMultitenancyConfig
 import traversium.tripservice.service.TripService
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.test.Test
@@ -51,7 +53,8 @@ import kotlin.test.assertEquals
         "spring.kafka.consumer.group-id=trip-service-tests",
     ]
 )
-@ContextConfiguration(classes = [TripServiceKafkaTests.KafkaConsumerConfiguration::class, MockFirebaseConfig::class])
+@ContextConfiguration(classes = [TripServiceKafkaTests.KafkaConsumerConfiguration::class, MockFirebaseConfig::class, TestMultitenancyConfig::class])
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 class TripServiceKafkaTests() : BaseSecuritySetup() {
 
     @Autowired

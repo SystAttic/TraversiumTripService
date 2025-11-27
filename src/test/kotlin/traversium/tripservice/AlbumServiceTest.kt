@@ -10,6 +10,7 @@ import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
 import org.mockito.kotlin.verify
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.context.ApplicationEventPublisher
 import traversium.tripservice.db.model.*
 import traversium.tripservice.db.repository.AlbumRepository
@@ -29,6 +30,7 @@ import java.time.OffsetDateTime
 import java.util.*
 
 @ExtendWith(MockitoExtension::class)
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 class AlbumServiceTest : BaseSecuritySetup() {
 
     @Mock private lateinit var albumRepository: AlbumRepository

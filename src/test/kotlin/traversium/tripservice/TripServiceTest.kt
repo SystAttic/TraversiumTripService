@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.context.ApplicationEventPublisher
 import traversium.tripservice.db.model.Album
 import traversium.tripservice.db.model.Media
@@ -33,6 +34,7 @@ import java.util.*
 import traversium.tripservice.kafka.data.ReportingStreamData
 
 @ExtendWith(MockitoExtension::class)
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 class TripServiceTest : BaseSecuritySetup() {
 
     @Mock

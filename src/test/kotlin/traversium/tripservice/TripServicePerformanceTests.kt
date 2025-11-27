@@ -9,20 +9,24 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import traversium.tripservice.db.model.Visibility
 import traversium.tripservice.dto.TripDto
+import traversium.tripservice.security.BaseSecuritySetup
+import traversium.tripservice.security.MockFirebaseConfig
+import traversium.tripservice.security.TestMultitenancyConfig
 import traversium.tripservice.service.TripService
 import kotlin.system.measureTimeMillis
 
-@AutoConfigureTestDatabase
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 @ActiveProfiles("test")
-@SpringBootTest(classes = [TripServiceApplication::class])
+@SpringBootTest(classes = [TripServiceApplication::class, TestMultitenancyConfig::class, MockFirebaseConfig::class])
 @ExtendWith(SpringExtension::class)
 @DirtiesContext
 class TripServicePerformanceTests @Autowired constructor(
     val tripService : TripService,
-    ) {
+    ) : BaseSecuritySetup() {
 
     @Test
     fun `find all Trips for a Collaborator`() {
