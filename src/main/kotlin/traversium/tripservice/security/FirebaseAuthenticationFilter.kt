@@ -2,6 +2,7 @@ package traversium.tripservice.security
 
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.UserRecord
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
@@ -10,6 +11,8 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
 import org.springframework.util.AntPathMatcher
 import org.springframework.web.filter.OncePerRequestFilter
+import traversium.commonmultitenancy.TenantContext
+import traversium.commonmultitenancy.TenantUtils
 import traversium.tripservice.service.FirebaseService
 import traversium.tripservice.service.TenantService
 
@@ -19,8 +22,6 @@ class FirebaseAuthenticationFilter(
     private val tenantService: TenantService,
     private val firebaseAuth: FirebaseAuth,
     ) : OncePerRequestFilter(){
-    private val pathMatcher = AntPathMatcher()
-
 
     override fun doFilterInternal(
         request: HttpServletRequest,
@@ -36,16 +37,29 @@ class FirebaseAuthenticationFilter(
 
             val decodedToken = firebaseAuth.verifyIdToken(token)
             val uid = decodedToken.uid
+            val tenantId = decodedToken.tenantId
 
+            TenantContext.setTenant(TenantUtils.sanitizeTenantIdForSchema(tenantId ?: "public"))
+
+            val userRecord = if (tenantId != null) {
+                try {
+                    val tenantAuth = firebaseAuth.tenantManager.getAuthForTenant(tenantId)
+                    tenantAuth.getUser(uid)
+                } catch (e: FirebaseAuthException) {
+                    logger.error("Failed to get user from tenant $tenantId: ${e.message}")
+                    throw e
+                }
+            } else {
+                firebaseAuth.getUser(uid)
+            }
 
             SecurityContextHolder.getContext().authentication = TraversiumAuthentication(
-                userRecordToPrincipal(firebaseAuth.getUser(uid)),
+                userRecordToPrincipal(userRecord),
                 null,
                 emptyList(),
                 token
             )
 
-            val tenantId = firebaseService.extractTenantIdFromToken(token)
             tenantService.setCurrentTenant(tenantId)
 
             filterChain.doFilter(request, response)

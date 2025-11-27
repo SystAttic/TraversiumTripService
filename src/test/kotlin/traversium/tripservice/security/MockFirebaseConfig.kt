@@ -1,5 +1,6 @@
 package traversium.tripservice.security
 
+import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseToken
 import com.google.firebase.auth.UserRecord
@@ -14,12 +15,6 @@ import traversium.tripservice.service.FirebaseService
 
 @TestConfiguration
 class MockFirebaseConfig {
-
-    private val tokenMap = mutableMapOf<String, Pair<String, String>>() // token -> (uid, email)
-
-    fun setTokenData(token: String, uid: String, email: String) {
-        tokenMap[token] = uid to email
-    }
 
     @Bean
     @Primary
@@ -39,21 +34,10 @@ class MockFirebaseConfig {
         `when`(mockAuth.verifyIdToken(any())).thenReturn(mockToken)
         `when`(mockAuth.getUser(any())).thenReturn(mockUserRecord)
 
-
         return mockAuth
     }
 
     @Bean
     @Primary
-    fun firebaseService(firebaseAuth: FirebaseAuth): FirebaseService {
-        return object : FirebaseService(firebaseAuth) {
-            override fun extractUidFromToken(token: String): String {
-                return tokenMap[token]?.first ?: "firebase123"
-            }
-
-//            override fun extractEmailFromToken(token: String): String {
-//                return tokenMap[token]?.second ?: "test@example.com"
-//            }
-        }
-    }
+    fun firebaseService(firebaseAuth: FirebaseAuth): FirebaseService = FirebaseService(firebaseAuth)
 }
