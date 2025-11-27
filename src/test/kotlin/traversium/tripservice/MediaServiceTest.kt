@@ -8,6 +8,7 @@ import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import traversium.tripservice.db.model.Media
 import traversium.tripservice.db.repository.MediaRepository
 import traversium.tripservice.db.repository.TripRepository
@@ -20,6 +21,7 @@ import java.time.OffsetDateTime
 import java.util.*
 
 @ExtendWith(MockitoExtension::class)
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 class MediaServiceTest : BaseSecuritySetup() {
 
     @Mock private lateinit var mediaRepository: MediaRepository
