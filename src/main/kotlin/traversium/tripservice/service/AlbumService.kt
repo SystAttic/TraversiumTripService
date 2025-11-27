@@ -5,6 +5,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import traversium.notification.kafka.NotificationStreamData
 import traversium.tripservice.db.model.Visibility
 import traversium.tripservice.dto.AlbumDto
 import traversium.tripservice.exceptions.AlbumNotFoundException
@@ -21,6 +22,8 @@ import traversium.tripservice.kafka.data.DomainEvent
 import traversium.tripservice.kafka.data.MediaEvent
 import traversium.tripservice.kafka.data.MediaEventType
 import traversium.tripservice.kafka.data.ReportingStreamData
+import traversium.tripservice.kafka.publisher.NotificationPublisher
+import java.time.OffsetDateTime
 import java.time.YearMonth
 
 @Service
@@ -29,7 +32,9 @@ class AlbumService(
     private val albumRepository: AlbumRepository,
     private val tripRepository: TripRepository,
     private val eventPublisher: ApplicationEventPublisher,
-    private val firebaseService: FirebaseService
+    private val notificationPublisher: NotificationPublisher,
+    private val firebaseService: FirebaseService,
+    private val tripService: TripService
 ) {
     private fun <T : DomainEvent> publishEvent(event: T) {
         val wrapped = ReportingStreamData(
@@ -37,6 +42,20 @@ class AlbumService(
             action = event
         )
         eventPublisher.publishEvent(wrapped)
+    }
+
+    private fun publishNotification(action: String, sender: String, collaborators: List<String>, trip: Long?, album: Long?) {
+        val event = NotificationStreamData(
+            senderId = sender,
+            receiverIds = collaborators,
+            action = action,
+            timestamp = OffsetDateTime.now(),
+            collectionReferenceId = trip,
+            nodeReferenceId = album,
+            commentReferenceId = null
+        )
+
+        notificationPublisher.publish(event)
     }
 
     private fun getFirebaseIdFromContext(): String =
@@ -110,6 +129,8 @@ class AlbumService(
         val tripId = getTripIdByAlbumId(albumId)
         authorizeModify(tripId, firebaseId)
 
+        val trip = tripService.getByTripId(tripId)
+
         val existingAlbum = albumRepository.findById(albumId)
             .orElseThrow { AlbumNotFoundException(albumId) }
 
@@ -124,6 +145,15 @@ class AlbumService(
                 albumId = updatedAlbum.albumId,
                 title = updatedAlbum.title,
             )
+        )
+
+        // Notification - Album UPDATE
+        publishNotification(
+            "UPDATE",
+            firebaseId,
+            trip.collaborators,
+            trip.tripId,
+            existingAlbum.albumId
         )
         return albumRepository.save(updatedAlbum).toDto()
     }
@@ -154,12 +184,15 @@ class AlbumService(
 
         val media = dto.copy(
             uploader = firebaseId
-        )
+        ).toMedia()
 
         val album = albumRepository.findById(albumId).orElseThrow{ AlbumNotFoundException(albumId) }
+        val trip = tripRepository.findById(tripId).orElseThrow {
+            TripNotFoundException(tripId)
+        }
 
         try {
-            album.media.add(media.toMedia())
+            album.media.add(media)
         } catch (_: Exception) {
             throw IllegalArgumentException("Failed to add media to album list.")
         }
@@ -182,6 +215,16 @@ class AlbumService(
             )
         )
 
+        // Notification - Media UPLOAD_MEDIA
+        publishNotification(
+            "UPLOAD_MEDIA",
+            firebaseId,
+            trip.collaborators,
+            trip.tripId,
+            savedAlbum.albumId
+            //TODO - add the actual media IDs that were added?
+        )
+
         return savedAlbum.toDto()
     }
 
@@ -192,22 +235,37 @@ class AlbumService(
         authorizeModify(tripId, firebaseId)
 
         val album = albumRepository.findById(albumId).orElseThrow { AlbumNotFoundException(albumId) }
+        val trip = tripRepository.findById(tripId).orElseThrow {
+            TripNotFoundException(tripId)
+        }
 
         if(album.media.any { it.mediaId == mediaId }) {
             val media = album.media.find { it.mediaId == mediaId }
             if (media == null) {
                 throw MediaNotFoundException(mediaId)
             }
-            // Kafka event - Media DELETE
-            publishEvent(
-                MediaEvent(
-                    eventType = MediaEventType.MEDIA_DELETED,
-                    mediaId = media.mediaId,
-                    pathUrl = media.pathUrl,
-                    )
-            )
+
             try {
                 album.media.remove(media)
+
+                // Kafka event - Media DELETE
+                publishEvent(
+                    MediaEvent(
+                        eventType = MediaEventType.MEDIA_DELETED,
+                        mediaId = media.mediaId,
+                        pathUrl = media.pathUrl,
+                    )
+                )
+
+                // Notification - Media DELETE
+                publishNotification(
+                    "DELETE_MEDIA",
+                    firebaseId,
+                    trip.collaborators,
+                    trip.tripId,
+                    album.albumId
+                    //TODO - add the actual media IDs that were deleted?
+                )
             } catch (_: Exception) {
                 throw MediaNotFoundException(mediaId)
             }

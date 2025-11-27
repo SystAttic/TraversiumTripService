@@ -3,12 +3,13 @@ package traversium.tripservice.kafka
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.bind.ConstructorBinding
 
-@ConfigurationProperties(prefix = "kafka")
+@ConfigurationProperties(prefix = "spring.kafka")
 class KafkaProperties @ConstructorBinding constructor(
     val bootstrapServers: String,
-    val reportingTopic: String,
-    val partition: Int? = null,
-    val partitioningStrategy: PartitioningStrategy = PartitioningStrategy.PER_MESSAGE_KEY,
+    val reportingTopic: String?,
+    val notificationTopic: String?,
+    partition: Int? = null,
+    partitioningStrategy: PartitioningStrategy = PartitioningStrategy.PER_MESSAGE_KEY,
     val clientConfirmationTimeout: Long = 10L
 ) {
 

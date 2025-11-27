@@ -153,6 +153,13 @@
 <!--            <version>6.4.4.Final</version>-->
 <!--        </dependency>-->
 
+        <!-- Notifications -->
+        <dependency>
+            <groupId>traversium</groupId>
+            <artifactId>notification-models</artifactId>
+            <version>1.1.0</version>
+        </dependency>
+
         <!-- Tests -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -259,6 +266,10 @@
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>
+        </repository>
+        <repository>
+            <id>github-notification</id>
+            <url>https://maven.pkg.github.com/SystAttic/TraversiumNotificationService</url>
         </repository>
     </repositories>
 

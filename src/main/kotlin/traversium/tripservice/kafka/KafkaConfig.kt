@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
 @Configuration
 @EnableKafka
 @EnableConfigurationProperties(KafkaProperties::class)
-@ConditionalOnProperty(prefix = "kafka", name = ["bootstrap-servers"])
+@ConditionalOnProperty(prefix = "spring.kafka", name = ["bootstrap-servers"])
 class KafkaConfig {
 
     @Bean
