@@ -5,6 +5,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import traversium.notification.kafka.NotificationStreamData
 import traversium.tripservice.db.model.Trip
 import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.TripNotFoundException
@@ -18,6 +19,8 @@ import traversium.tripservice.kafka.data.DomainEvent
 import traversium.tripservice.kafka.data.ReportingStreamData
 import traversium.tripservice.kafka.data.TripEvent
 import traversium.tripservice.kafka.data.TripEventType
+import traversium.tripservice.kafka.publisher.NotificationPublisher
+import java.time.OffsetDateTime
 import java.time.YearMonth
 
 @Service
@@ -25,7 +28,8 @@ import java.time.YearMonth
 class TripService(
     private val tripRepository: TripRepository,
     private val eventPublisher: ApplicationEventPublisher,
-    private val firebaseService: FirebaseService
+    private val firebaseService: FirebaseService,
+    private val notificationPublisher: NotificationPublisher
 ) {
     private fun <T : DomainEvent> publishEvent(event: T) {
         val wrapped = ReportingStreamData(
@@ -33,6 +37,20 @@ class TripService(
             action = event
         )
         eventPublisher.publishEvent(wrapped)
+    }
+
+    private fun publishNotification(action: String, sender: String, collaborators: List<String>, trip: Long?, album: Long?) {
+        val event = NotificationStreamData(
+            senderId = sender,
+            receiverIds = collaborators,
+            action = action,
+            timestamp = OffsetDateTime.now(),
+            collectionReferenceId = trip,
+            nodeReferenceId = album,
+            commentReferenceId = null
+        )
+
+        notificationPublisher.publish(event)
     }
 
     private fun validateCollaborator(trip: Trip, collaboratorId: String) {
@@ -118,15 +136,6 @@ class TripService(
         }
     }
 
-//    // trips where user is owner or collaborator
-//    fun getTripsByOwnerOrCollaborator(userId: String): List<TripDto> {
-//        val firebaseId = getFirebaseIdFromContext()
-//        if (userId == firebaseId)
-//            return tripRepository.findByOwnerOrCollaborator(userId).map { it.toDto() }
-//        else
-//            throw TripUnauthorizedException("User is not authorized to perform this operation.")
-//    }
-
     @Transactional
     fun createTrip(dto: TripDto): TripDto {
         if (
@@ -170,6 +179,14 @@ class TripService(
                 ownerId = firebaseId,
             )
         )
+        // Notification - Trip CREATE
+        publishNotification(
+            "CREATE",
+            firebaseId,
+            saved.collaborators,
+            saved.tripId,
+            null
+        )
         return saved.toDto()
     }
 
@@ -189,6 +206,14 @@ class TripService(
                 tripId = trip.tripId,
                 ownerId = trip.ownerId,
             )
+        )
+        // Notification - Trip DELETE
+        publishNotification(
+            "DELETE",
+            firebaseId,
+            trip.collaborators,
+            trip.tripId,
+            null
         )
         tripRepository.delete(trip)
     }
@@ -219,6 +244,14 @@ class TripService(
                 tripId = mergedTrip.tripId,
                 ownerId = mergedTrip.ownerId,
             )
+        )
+        // Notification - Trip UPDATE
+        publishNotification(
+            "UPDATE",
+            firebaseId,
+            mergedTrip.collaborators,
+            mergedTrip.tripId,
+            null
         )
 
         return tripRepository.save(mergedTrip).toDto()
@@ -278,6 +311,14 @@ class TripService(
                 ownerId = saved.ownerId
             )
         )
+        // Notification - Trip ADD_COLLABORATOR
+        publishNotification(
+            "ADD_COLLABORATOR",
+            firebaseId,
+            saved.collaborators,
+            saved.tripId,
+            null
+        )
         return saved.toDto()
     }
 
@@ -303,6 +344,15 @@ class TripService(
                 )
             )
             trip.collaborators.remove(collaboratorId)
+
+            // Notification - Trip REMOVE_COLLABORATOR
+            publishNotification(
+                "REMOVE_COLLABORATOR",
+                firebaseId,
+                trip.collaborators,
+                trip.tripId,
+                null
+            )
             tripRepository.save(trip)
         } else throw TripWithoutCollaboratorException(tripId,collaboratorId)
     }
@@ -354,6 +404,15 @@ class TripService(
                 ownerId = saved.ownerId
             )
         )
+
+        // Notification - Trip ADD_VIEWER
+        publishNotification(
+            "ADD_VIEWER",
+            firebaseId,
+            saved.collaborators,
+            saved.tripId,
+            null
+        )
         return saved.toDto()
     }
 
@@ -377,6 +436,15 @@ class TripService(
                 )
             )
             trip.viewers.remove(viewerId)
+
+            // Notification - Trip REMOVE_VIEWER
+            publishNotification(
+                "REMOVE_VIEWER",
+                firebaseId,
+                trip.collaborators,
+                trip.tripId,
+                null
+            )
             tripRepository.save(trip)
         } else throw TripWithoutViewerException(tripId,viewerId)
     }
@@ -407,16 +475,29 @@ class TripService(
         if (!trip.collaborators.contains(firebaseId))
             throw TripUnauthorizedException("User is not authorized to perform this operation.")
 
-        trip.albums.add(dto.toAlbum())
+        val newAlbum = dto.toAlbum()
+        trip.albums.add(newAlbum)
+
+        val createdAlbum = trip.albums.last()
 
         // Kafka event - Album CREATE
         publishEvent(
             AlbumEvent(
                 eventType = AlbumEventType.ALBUM_CREATED,
-                albumId = dto.albumId,
-                title = dto.title,
+                albumId = createdAlbum.albumId,
+                title = createdAlbum.title,
             )
         )
+
+        // Notification - Album CREATE
+        publishNotification(
+            "CREATE",
+            firebaseId,
+            trip.collaborators,
+            trip.tripId,
+            createdAlbum.albumId,
+        )
+
         return tripRepository.save(trip).toDto()
     }
 
@@ -441,6 +522,16 @@ class TripService(
                 )
             )
             trip.albums.remove(album)
+
+            // Notification - Album DELETE
+            publishNotification(
+                "DELETE",
+                firebaseId,
+                trip.collaborators,
+                trip.tripId,
+                albumId
+            )
+
             tripRepository.save(trip)
         }else
             throw AlbumNotFoundException(albumId)

@@ -32,6 +32,7 @@ import traversium.tripservice.service.TripService
 import java.time.OffsetDateTime
 import java.util.*
 import traversium.tripservice.kafka.data.ReportingStreamData
+import traversium.tripservice.kafka.publisher.NotificationPublisher
 
 @ExtendWith(MockitoExtension::class)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
@@ -42,6 +43,9 @@ class TripServiceTest : BaseSecuritySetup() {
 
     @Mock
     private lateinit var eventPublisher: ApplicationEventPublisher
+
+    @Mock
+    private lateinit var notificationPublisher: NotificationPublisher
 
     @Mock
     private lateinit var firebaseService: FirebaseService
@@ -266,7 +270,7 @@ class TripServiceTest : BaseSecuritySetup() {
         assertEquals(updatedTitle, result.title)
 
         verify(tripRepository).save(argThat { trip: Trip ->
-            trip.title == updatedTitle && trip.createdAt== defaultTrip.createdAt
+            trip.title == updatedTitle && trip.createdAt == defaultTrip.createdAt
         })
         verify(eventPublisher).publishEvent(
             argThat { event: ReportingStreamData ->

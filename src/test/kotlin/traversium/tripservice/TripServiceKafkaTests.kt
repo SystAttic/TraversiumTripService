@@ -26,6 +26,7 @@ import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.TestPropertySource
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
+import traversium.notification.kafka.NotificationStreamData
 import traversium.tripservice.dto.TripDto
 import traversium.tripservice.kafka.data.ReportingStreamData
 import traversium.tripservice.kafka.data.TripEvent
@@ -42,15 +43,15 @@ import kotlin.test.assertEquals
 @ActiveProfiles("test")
 @EmbeddedKafka(
     partitions = 1,
-    topics = ["test-datastream"],
+    topics = ["test-datastream", "test-notifications"],
     bootstrapServersProperty = "spring.kafka.bootstrap-servers"
 )
 @TestPropertySource(
     properties = [
         "spring.kafka.consumer.auto-offset-reset=earliest",
-        "kafka.reporting-topic=test-datastream",
-        "kafka.bootstrap-servers=\${spring.kafka.bootstrap-servers}",
+        "spring.kafka.reporting-topic=test-datastream",
         "spring.kafka.consumer.group-id=trip-service-tests",
+        "spring.kafka.notification-topic=test-notifications",
     ]
 )
 @ContextConfiguration(classes = [TripServiceKafkaTests.KafkaConsumerConfiguration::class, MockFirebaseConfig::class, TestMultitenancyConfig::class])
@@ -63,6 +64,8 @@ class TripServiceKafkaTests() : BaseSecuritySetup() {
     @Autowired
     lateinit var reportingKafkaConsumer: KafkaConsumerConfiguration.ReportingKafkaConsumer
 
+    @Autowired
+    lateinit var notificationKafkaConsumer: KafkaConsumerConfiguration.NotificationKafkaConsumer
     // --- Test Constants ---
     private val COLLABORATOR_ID = "test_collab_1"
     private val VIEWER_ID = "test_viewer_1"
@@ -70,6 +73,7 @@ class TripServiceKafkaTests() : BaseSecuritySetup() {
     @BeforeEach
     fun beforeEach() {
         reportingKafkaConsumer.clearMessages()
+        notificationKafkaConsumer.clearMessages()
     }
 
     // -----------------------------
@@ -281,15 +285,32 @@ class TripServiceKafkaTests() : BaseSecuritySetup() {
         fun reportingKafkaConsumer() = ReportingKafkaConsumer()
 
         @Bean
+        fun notificationKafkaConsumer() = NotificationKafkaConsumer()
+
+        @Bean
         fun reportingKafkaListenerContainer(
             objectMapper: ObjectMapper,
             reportingKafkaConsumer: ReportingKafkaConsumer,
-            @Value("\${kafka.bootstrap-servers}") bootstrapServers: String,
-            @Value("\${kafka.reporting-topic}") topic: String,
+            @Value("\${spring.kafka.bootstrap-servers}") bootstrapServers: String,
+            @Value("\${spring.kafka.reporting-topic}") topic: String,
             @Value("\${spring.kafka.consumer.group-id}") groupId: String) =
             KafkaMessageListenerContainer(
                 reportingConsumerFactory(objectMapper, bootstrapServers, groupId),
                 kafkaContainerProperties(topic, emptySet(), reportingKafkaConsumer))
+                .apply {
+                    commonErrorHandler = DefaultErrorHandler()
+                }
+
+        @Bean
+        fun notificationKafkaListenerContainer(
+            objectMapper: ObjectMapper,
+            notificationKafkaConsumer: NotificationKafkaConsumer,
+            @Value("\${spring.kafka.bootstrap-servers}") bootstrapServers: String,
+            @Value("\${spring.kafka.notification-topic}") topic: String,
+            @Value("\${spring.kafka.consumer.group-id}") groupId: String) =
+            KafkaMessageListenerContainer(
+                notificationConsumerFactory(objectMapper, bootstrapServers, groupId),
+                kafkaContainerProperties(topic, emptySet(), notificationKafkaConsumer))
                 .apply {
                     commonErrorHandler = DefaultErrorHandler()
                 }
@@ -302,7 +323,19 @@ class TripServiceKafkaTests() : BaseSecuritySetup() {
             fun clearMessages() = messages.clear()
 
             override fun onMessage(data: ConsumerRecord<String, ReportingStreamData>) {
-                logger.info("--- KAFKA RECEIVED: Topic=${data.topic()}, Value=${data.value()}")
+                //logger.info("--- KAFKA RECEIVED: Topic=${data.topic()}, Value=${data.value()}")
+                messages.add(data.value())
+            }
+        }
+
+        class NotificationKafkaConsumer : MessageListener<String, NotificationStreamData> {
+            private val messages = LinkedBlockingQueue<Any>()
+
+            fun getMessages(): List<Any> = messages.toList()
+
+            fun clearMessages() = messages.clear()
+
+            override fun onMessage(data: ConsumerRecord<String, NotificationStreamData>) {
                 messages.add(data.value())
             }
         }
@@ -325,6 +358,17 @@ class TripServiceKafkaTests() : BaseSecuritySetup() {
                 kafkaConsumerConfig(bootstrapServers, groupId, 1048576, 1048576, ReportingStreamData::class.java),
                 StringDeserializer(),
                 JsonDeserializer(ReportingStreamData::class.java, objectMapper)
+            )
+
+        fun notificationConsumerFactory(
+            objectMapper: ObjectMapper,
+            bootstrapServers: String,
+            groupId: String
+        ): DefaultKafkaConsumerFactory<String, NotificationStreamData> =
+            DefaultKafkaConsumerFactory(
+                kafkaConsumerConfig(bootstrapServers, groupId, 1048576, 1048576, NotificationStreamData::class.java),
+                StringDeserializer(),
+                JsonDeserializer(NotificationStreamData::class.java, objectMapper)
             )
 
 
