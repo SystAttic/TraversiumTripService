@@ -22,6 +22,7 @@ import traversium.tripservice.kafka.data.TripEventType
 import traversium.tripservice.kafka.publisher.NotificationPublisher
 import java.time.OffsetDateTime
 import java.time.YearMonth
+import java.util.UUID
 
 @Service
 @Transactional
@@ -475,17 +476,29 @@ class TripService(
         if (!trip.collaborators.contains(firebaseId))
             throw TripUnauthorizedException("User is not authorized to perform this operation.")
 
-        val newAlbum = dto.toAlbum()
+        val originalDescription = dto.description
+        val marker = UUID.randomUUID().toString()
+
+        val newAlbum = dto.toAlbum().copy(
+            description = marker
+        )
         trip.albums.add(newAlbum)
 
-        val createdAlbum = trip.albums.last()
+        val savedTrip = tripRepository.save(trip)
+        val albumWithId = savedTrip.albums.find { it.description == marker }
+
+        requireNotNull(albumWithId) {"Failed to find the newly added album by unique marker."}
+        val albumId = requireNotNull(albumWithId.albumId)
+
+        albumWithId.description = dto.description ?: ""
+        val savedTripDto = savedTrip.toDto()
 
         // Kafka event - Album CREATE
         publishEvent(
             AlbumEvent(
                 eventType = AlbumEventType.ALBUM_CREATED,
-                albumId = createdAlbum.albumId,
-                title = createdAlbum.title,
+                albumId = albumId,
+                title = newAlbum.title,
             )
         )
 
@@ -493,12 +506,12 @@ class TripService(
         publishNotification(
             "CREATE",
             firebaseId,
-            trip.collaborators,
-            trip.tripId,
-            createdAlbum.albumId,
+            savedTripDto.collaborators,
+            savedTripDto.tripId,
+            albumId,
         )
 
-        return tripRepository.save(trip).toDto()
+        return savedTripDto
     }
 
     @Transactional
