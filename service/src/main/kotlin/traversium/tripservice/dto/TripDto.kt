@@ -14,6 +14,7 @@ data class TripDto(
     val coverPhotoUrl: String? = null,
     val collaborators: List<String> = emptyList(),
     val viewers: List<String> = emptyList(),
+    val defaultAlbum: Long? = null,
     val albums: List<AlbumDto> = emptyList(),
 
     @get:JsonProperty(access = JsonProperty.Access.READ_ONLY)
@@ -28,6 +29,7 @@ data class TripDto(
         coverPhotoUrl = coverPhotoUrl ?: "",
         collaborators = collaborators.toMutableList(),
         viewers = viewers.toMutableList(),
+        defaultAlbum = defaultAlbum,
         albums = albums.map { it.toAlbum() }.toMutableList(),
     )
 }

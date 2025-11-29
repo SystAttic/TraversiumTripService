@@ -163,6 +163,7 @@ class AlbumService(
             title = dto.title ?: existingAlbum.title,
             description = dto.description ?: existingAlbum.description,
         )
+
         // Kafka event - Album UPDATE
         publishEvent(
             AlbumEvent(
