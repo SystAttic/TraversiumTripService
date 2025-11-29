@@ -7,6 +7,9 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import traversium.notification.kafka.NotificationStreamData
 import traversium.tripservice.db.model.Trip
+import traversium.tripservice.db.model.Visibility
+import traversium.tripservice.db.model.Album
+import traversium.tripservice.db.repository.AlbumRepository
 import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.TripNotFoundException
 import traversium.tripservice.db.repository.TripRepository
@@ -28,6 +31,7 @@ import java.util.UUID
 @Transactional
 class TripService(
     private val tripRepository: TripRepository,
+    private val albumRepository: AlbumRepository,
     private val eventPublisher: ApplicationEventPublisher,
     private val firebaseService: FirebaseService,
     private val notificationPublisher: NotificationPublisher
@@ -147,9 +151,21 @@ class TripService(
 
         val firebaseId = getFirebaseIdFromContext()
 
+        // DEFAULT ALBUM
+        val defaultAlbum = Album(
+            title = "Default moment"
+        )
+
+        try {
+            albumRepository.save(defaultAlbum)
+        } catch (_: Exception) {
+            throw IllegalArgumentException()
+        }
+
         val trip = dto.toTrip().copy(
             ownerId = firebaseId,
-            albums = mutableListOf(),
+            defaultAlbum = defaultAlbum.albumId,
+            albums = mutableListOf(defaultAlbum),
             collaborators = mutableListOf(firebaseId),
             viewers = mutableListOf()
         )
