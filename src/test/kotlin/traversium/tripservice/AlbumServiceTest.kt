@@ -23,9 +23,11 @@ import traversium.tripservice.kafka.data.AlbumEventType
 import traversium.tripservice.kafka.data.MediaEvent
 import traversium.tripservice.kafka.data.MediaEventType
 import traversium.tripservice.kafka.data.ReportingStreamData
+import traversium.tripservice.kafka.publisher.NotificationPublisher
 import traversium.tripservice.security.BaseSecuritySetup // Assuming this path
 import traversium.tripservice.service.AlbumService
 import traversium.tripservice.service.FirebaseService
+import traversium.tripservice.service.TripService
 import java.time.OffsetDateTime
 import java.util.*
 
@@ -37,6 +39,8 @@ class AlbumServiceTest : BaseSecuritySetup() {
     @Mock private lateinit var tripRepository: TripRepository
     @Mock private lateinit var eventPublisher: ApplicationEventPublisher
     @Mock private lateinit var firebaseService: FirebaseService
+    @Mock private lateinit var notificationPublisher: NotificationPublisher
+    @Mock private lateinit var tripService: TripService
 
     @InjectMocks
     private lateinit var albumService: AlbumService
@@ -187,6 +191,7 @@ class AlbumServiceTest : BaseSecuritySetup() {
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(trip))
         `when`(albumRepository.findById(ALBUM_ID)).thenReturn(Optional.of(defaultAlbum))
         `when`(albumRepository.save(any<Album>())).thenAnswer { it.arguments[0] }
+        `when`(tripService.getByTripId(TRIP_ID)).thenReturn(trip.toDto())
 
         val updatedDto = AlbumDto(null, "New Title", "New Desc", emptyList())
         val result = albumService.updateAlbum(ALBUM_ID, updatedDto)
