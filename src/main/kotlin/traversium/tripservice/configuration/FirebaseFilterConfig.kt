@@ -30,6 +30,10 @@ class FirebaseFilterConfig {
                         "/swagger-resources/**",
                         "/swagger-ui.html"
                     ).permitAll()
+                    .requestMatchers("/actuator/health/**").permitAll()
+                    .requestMatchers("/actuator/health").permitAll()
+                    .requestMatchers("/actuator/prometheus/**").permitAll()
+                    .requestMatchers("/actuator/prometheus").permitAll()
                     .requestMatchers("/graphql").authenticated()
                     .requestMatchers("/rest/**").authenticated()
 
