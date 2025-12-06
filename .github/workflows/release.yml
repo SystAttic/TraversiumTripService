@@ -50,7 +50,7 @@ jobs:
           echo "Release version: $RELEASE_VERSION"
         env:
           GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.PACKAGE_READ_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract release notes from CHANGELOG
         id: changelog
@@ -84,13 +84,17 @@ jobs:
         run: |
           mvn versions:set -DnewVersion=${{ steps.versions.outputs.release_version }} -DgenerateBackupPoms=false
 
-      - name: Deploy modules to GitHub Packages
+      - name: Deploy parent POM to GitHub Packages
         run: |
-          mvn deploy -N
-          mvn deploy -pl proto
+          mvn deploy -N -DskipTests
         env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.PACKAGE_READ_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy proto module to GitHub Packages
+        run: |
+          mvn deploy -pl proto -DskipTests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Commit release version
         run: |
@@ -101,11 +105,11 @@ jobs:
         run: |
           git tag -a "v${{ steps.versions.outputs.release_version }}" -m "Release version ${{ steps.versions.outputs.release_version }}"
 
-      - name: Build with Maven
-        run: mvn clean package -DskipTests
+      - name: Build and test with Maven
+        run: mvn clean package
         env:
           GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.PACKAGE_READ_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
