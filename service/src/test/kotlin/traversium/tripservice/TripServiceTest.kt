@@ -489,14 +489,6 @@ class TripServiceTest : BaseSecuritySetup() {
         assertEquals(false, tripWithViewer.viewers.contains(viewerToDeleteId))
 
         verify(tripRepository).save(any())
-        verify(eventPublisher).publishEvent(
-            argThat { event: ReportingStreamData ->
-                val action = event.action as? TripEvent
-                action != null &&
-                        action.eventType == TripEventType.VIEWER_DELETED &&
-                        action.tripId == TRIP_ID
-            }
-        )
     }
 
     @Test

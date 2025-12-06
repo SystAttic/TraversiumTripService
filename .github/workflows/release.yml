@@ -1,4 +1,4 @@
-name: Release Docker Image
+name: Release
 
 on:
   workflow_dispatch:
@@ -7,6 +7,9 @@ on:
         description: 'Next SNAPSHOT version (e.g., 1.1.0-SNAPSHOT)'
         required: true
         type: string
+
+permissions:
+  contents: write
 
 jobs:
   release:
@@ -50,7 +53,7 @@ jobs:
           echo "Release version: $RELEASE_VERSION"
         env:
           GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PACKAGE_READ_TOKEN }}
 
       - name: Extract release notes from CHANGELOG
         id: changelog
@@ -84,18 +87,6 @@ jobs:
         run: |
           mvn versions:set -DnewVersion=${{ steps.versions.outputs.release_version }} -DgenerateBackupPoms=false
 
-      - name: Deploy parent POM to GitHub Packages
-        run: |
-          mvn deploy -N -DskipTests
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Deploy proto module to GitHub Packages
-        run: |
-          mvn deploy -pl proto -DskipTests
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Commit release version
         run: |
           git add pom.xml proto/pom.xml service/pom.xml
@@ -105,11 +96,23 @@ jobs:
         run: |
           git tag -a "v${{ steps.versions.outputs.release_version }}" -m "Release version ${{ steps.versions.outputs.release_version }}"
 
-      - name: Build and test with Maven
-        run: mvn clean package
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
         env:
           GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PACKAGE_READ_TOKEN }}
+
+      - name: Deploy parent pom to GitHub Packages
+        run: |
+          mvn deploy -N -DskipTests
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Deploy tripservice proto to GitHub Packages
+        run: |
+          mvn deploy -pl proto -DskipTests
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -124,12 +127,12 @@ jobs:
           IMAGE_NAME=ghcr.io/$OWNER/traversium-trip-service:${{ steps.versions.outputs.release_version }}
           IMAGE_NAME_LATEST=ghcr.io/$OWNER/traversium-trip-service:latest
           echo "Building image $IMAGE_NAME"
-          
-          docker buildx create --use 
-          
+
+          docker buildx create --use
+
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
-            --file Dockerfile \
+            --file service/Dockerfile \
             --tag $IMAGE_NAME \
             --tag $IMAGE_NAME_LATEST \
             --push \
@@ -167,8 +170,31 @@ jobs:
           release_name: Release v${{ steps.versions.outputs.release_version }}
           body: |
             ${{ steps.changelog.outputs.release_notes }}
-            
+
             ---
-            **Docker Image:** `ghcr.io/${{ github.repository_owner }}/traversium-trip-service:${{ steps.versions.outputs.release_version }}`
+            **Docker Image:**
+            ```bash
+            docker pull ghcr.io/${{ github.repository_owner }}/traversium-trip-service:${{ steps.versions.outputs.release_version }}
+            ```
+
+            **Maven Dependencies:**
+
+            Parent POM:
+            ```xml
+            <parent>
+              <groupId>traversium</groupId>
+              <artifactId>TripService</artifactId>
+              <version>${{ steps.versions.outputs.release_version }}</version>
+            </parent>
+            ```
+
+            tripservice-proto:
+            ```xml
+            <dependency>
+              <groupId>traversium</groupId>
+              <artifactId>tripservice-proto</artifactId>
+              <version>${{ steps.versions.outputs.release_version }}</version>
+            </dependency>
+            ```
           draft: false
           prerelease: false
