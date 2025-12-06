@@ -5,6 +5,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import traversium.notification.kafka.ActionType
 import traversium.notification.kafka.NotificationStreamData
 import traversium.tripservice.db.model.Trip
 import traversium.tripservice.dto.TripDto
@@ -39,7 +40,7 @@ class TripService(
         eventPublisher.publishEvent(wrapped)
     }
 
-    private fun publishNotification(action: String, sender: String, collaborators: List<String>, trip: Long?, album: Long?) {
+    private fun publishNotification(action: ActionType, sender: String, collaborators: List<String>, trip: Long?, album: Long?, mediaId: Long?) {
         val event = NotificationStreamData(
             senderId = sender,
             receiverIds = collaborators,
@@ -47,7 +48,8 @@ class TripService(
             timestamp = OffsetDateTime.now(),
             collectionReferenceId = trip,
             nodeReferenceId = album,
-            commentReferenceId = null
+            commentReferenceId = null,
+            mediaReferenceId = mediaId,
         )
 
         eventPublisher.publishEvent(event)
@@ -181,10 +183,11 @@ class TripService(
         )
         // Notification - Trip CREATE
         publishNotification(
-            "CREATE",
+            ActionType.CREATE,
             firebaseId,
             saved.collaborators,
             saved.tripId,
+            null,
             null
         )
         return saved.toDto()
@@ -209,10 +212,11 @@ class TripService(
         )
         // Notification - Trip DELETE
         publishNotification(
-            "DELETE",
+            ActionType.DELETE,
             firebaseId,
             trip.collaborators,
             trip.tripId,
+            null,
             null
         )
         tripRepository.delete(trip)
@@ -245,14 +249,42 @@ class TripService(
                 ownerId = mergedTrip.ownerId,
             )
         )
-        // Notification - Trip UPDATE
-        publishNotification(
-            "UPDATE",
-            firebaseId,
-            mergedTrip.collaborators,
-            mergedTrip.tripId,
-            null
-        )
+
+        // Notification - Title change
+        if (updated.title != null && updated.title != existingTrip.title) {
+            publishNotification(
+                ActionType.CHANGE_TITLE,
+                firebaseId,
+                mergedTrip.collaborators,
+                mergedTrip.tripId,
+                null,
+                null
+            )
+        }
+
+        // Notification - Description change
+        if (updated.description != null && updated.description != existingTrip.description) {
+            publishNotification(
+                ActionType.CHANGE_DESCRIPTION,
+                firebaseId,
+                mergedTrip.collaborators,
+                mergedTrip.tripId,
+                null,
+                null
+            )
+        }
+
+        // Notification - Cover photo change
+        if (updated.coverPhotoUrl != null && updated.coverPhotoUrl != existingTrip.coverPhotoUrl) {
+            publishNotification(
+                ActionType.CHANGE_COVER_PHOTO,
+                firebaseId,
+                mergedTrip.collaborators,
+                mergedTrip.tripId,
+                null,
+                null
+            )
+        }
 
         return tripRepository.save(mergedTrip).toDto()
     }
@@ -313,10 +345,11 @@ class TripService(
         )
         // Notification - Trip ADD_COLLABORATOR
         publishNotification(
-            "ADD_COLLABORATOR",
+            ActionType.ADD_COLLABORATOR,
             firebaseId,
             saved.collaborators,
             saved.tripId,
+            null,
             null
         )
         return saved.toDto()
@@ -347,10 +380,11 @@ class TripService(
 
             // Notification - Trip REMOVE_COLLABORATOR
             publishNotification(
-                "REMOVE_COLLABORATOR",
+                ActionType.REMOVE_COLLABORATOR,
                 firebaseId,
                 trip.collaborators,
                 trip.tripId,
+                null,
                 null
             )
             tripRepository.save(trip)
@@ -407,10 +441,11 @@ class TripService(
 
         // Notification - Trip ADD_VIEWER
         publishNotification(
-            "ADD_VIEWER",
+            ActionType.ADD_VIEWER,
             firebaseId,
             saved.collaborators,
             saved.tripId,
+            null,
             null
         )
         return saved.toDto()
@@ -439,10 +474,11 @@ class TripService(
 
             // Notification - Trip REMOVE_VIEWER
             publishNotification(
-                "REMOVE_VIEWER",
+                ActionType.REMOVE_VIEWER,
                 firebaseId,
                 trip.collaborators,
                 trip.tripId,
+                null,
                 null
             )
             tripRepository.save(trip)
@@ -503,11 +539,12 @@ class TripService(
 
         // Notification - Album CREATE
         publishNotification(
-            "CREATE",
+            ActionType.CREATE,
             firebaseId,
             savedTripDto.collaborators,
             savedTripDto.tripId,
             albumId,
+            null
         )
 
         return savedTripDto
@@ -537,11 +574,12 @@ class TripService(
 
             // Notification - Album DELETE
             publishNotification(
-                "DELETE",
+                ActionType.DELETE,
                 firebaseId,
                 trip.collaborators,
                 trip.tripId,
-                albumId
+                albumId,
+                null
             )
 
             tripRepository.save(trip)

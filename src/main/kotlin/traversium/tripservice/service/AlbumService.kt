@@ -5,6 +5,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import traversium.notification.kafka.ActionType
 import traversium.notification.kafka.NotificationStreamData
 import traversium.tripservice.db.model.Visibility
 import traversium.tripservice.dto.AlbumDto
@@ -43,7 +44,7 @@ class AlbumService(
         eventPublisher.publishEvent(wrapped)
     }
 
-    private fun publishNotification(action: String, sender: String, collaborators: List<String>, trip: Long?, album: Long?) {
+    private fun publishNotification(action: ActionType, sender: String, collaborators: List<String>, trip: Long?, album: Long?, mediaId: Long?) {
         val event = NotificationStreamData(
             senderId = sender,
             receiverIds = collaborators,
@@ -51,7 +52,8 @@ class AlbumService(
             timestamp = OffsetDateTime.now(),
             collectionReferenceId = trip,
             nodeReferenceId = album,
-            commentReferenceId = null
+            commentReferenceId = null,
+            mediaReferenceId = mediaId
         )
 
         eventPublisher.publishEvent(event)
@@ -146,14 +148,30 @@ class AlbumService(
             )
         )
 
-        // Notification - Album UPDATE
-        publishNotification(
-            "UPDATE",
-            firebaseId,
-            trip.collaborators,
-            trip.tripId,
-            existingAlbum.albumId
-        )
+        // Notification - Title change
+        if (dto.title != null && dto.title != existingAlbum.title) {
+            publishNotification(
+                ActionType.CHANGE_TITLE,
+                firebaseId,
+                trip.collaborators,
+                trip.tripId,
+                existingAlbum.albumId,
+                null
+            )
+        }
+
+        // Notification - Description change
+        if (dto.description != null && dto.description != existingAlbum.description) {
+            publishNotification(
+                ActionType.CHANGE_DESCRIPTION,
+                firebaseId,
+                trip.collaborators,
+                trip.tripId,
+                existingAlbum.albumId,
+                null
+            )
+        }
+
         return albumRepository.save(updatedAlbum).toDto()
     }
 
@@ -216,12 +234,12 @@ class AlbumService(
 
         // Notification - Media UPLOAD_MEDIA
         publishNotification(
-            "UPLOAD_MEDIA",
+            ActionType.ADD,
             firebaseId,
             trip.collaborators,
             trip.tripId,
-            savedAlbum.albumId
-            //TODO - add the actual media IDs that were added?
+            savedAlbum.albumId,
+            savedMedia.mediaId,
         )
 
         return savedAlbum.toDto()
@@ -258,12 +276,12 @@ class AlbumService(
 
                 // Notification - Media DELETE
                 publishNotification(
-                    "DELETE_MEDIA",
+                    ActionType.DELETE,
                     firebaseId,
                     trip.collaborators,
                     trip.tripId,
-                    album.albumId
-                    //TODO - add the actual media IDs that were deleted?
+                    album.albumId,
+                    media.mediaId
                 )
             } catch (_: Exception) {
                 throw MediaNotFoundException(mediaId)

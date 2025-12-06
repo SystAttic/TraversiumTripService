@@ -153,17 +153,11 @@
             <version>1.1.0</version>
         </dependency>
 
-<!--        <dependency>-->
-<!--            <groupId>org.hibernate</groupId>-->
-<!--            <artifactId>hibernate-core</artifactId>-->
-<!--            <version>6.4.4.Final</version>-->
-<!--        </dependency>-->
-
         <!-- Notifications -->
         <dependency>
             <groupId>traversium</groupId>
             <artifactId>notification-models</artifactId>
-            <version>1.1.0</version>
+            <version>1.2.0</version>
         </dependency>
 
         <!-- Tests -->
