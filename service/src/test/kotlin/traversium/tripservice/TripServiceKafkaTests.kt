@@ -39,7 +39,9 @@ import java.util.concurrent.LinkedBlockingQueue
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-@SpringBootTest
+@SpringBootTest(
+    classes = [TripServiceApplication::class]
+)
 @ActiveProfiles("test")
 @EmbeddedKafka(
     partitions = 1,

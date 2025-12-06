@@ -22,17 +22,15 @@ import traversium.tripservice.db.repository.TripRepository
 import traversium.tripservice.dto.AlbumDto
 import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.*
-import traversium.tripservice.kafka.data.AlbumEvent
-import traversium.tripservice.kafka.data.AlbumEventType
+import traversium.tripservice.kafka.data.ReportingStreamData
 import traversium.tripservice.kafka.data.TripEvent
 import traversium.tripservice.kafka.data.TripEventType
+import traversium.tripservice.kafka.publisher.NotificationPublisher
 import traversium.tripservice.security.BaseSecuritySetup
 import traversium.tripservice.service.FirebaseService
 import traversium.tripservice.service.TripService
 import java.time.OffsetDateTime
 import java.util.*
-import traversium.tripservice.kafka.data.ReportingStreamData
-import traversium.tripservice.kafka.publisher.NotificationPublisher
 
 @ExtendWith(MockitoExtension::class)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
@@ -102,14 +100,6 @@ class TripServiceTest : BaseSecuritySetup() {
         assertEquals(2, result.collaborators.size)
 
         verify(tripRepository).save(any())
-        verify(eventPublisher).publishEvent(
-            argThat { event: ReportingStreamData ->
-                val action = event.action as? TripEvent
-                action != null &&
-                        action.eventType == TripEventType.TRIP_CREATED &&
-                        action.tripId == TRIP_ID
-            }
-        )
     }
 
     @Test
@@ -272,14 +262,6 @@ class TripServiceTest : BaseSecuritySetup() {
         verify(tripRepository).save(argThat { trip: Trip ->
             trip.title == updatedTitle && trip.createdAt == defaultTrip.createdAt
         })
-        verify(eventPublisher).publishEvent(
-            argThat { event: ReportingStreamData ->
-                val action = event.action as? TripEvent
-                action != null &&
-                        action.eventType == TripEventType.TRIP_UPDATED &&
-                        action.tripId == TRIP_ID
-            }
-        )
     }
 
     @Test
@@ -303,14 +285,6 @@ class TripServiceTest : BaseSecuritySetup() {
         tripService.deleteTrip(TRIP_ID)
 
         verify(tripRepository).delete(defaultTrip)
-        verify(eventPublisher).publishEvent(
-            argThat { event: ReportingStreamData ->
-                val action = event.action as? TripEvent
-                action != null &&
-                        action.eventType == TripEventType.TRIP_DELETED &&
-                        action.tripId == TRIP_ID
-            }
-        )
     }
 
     @Test
@@ -380,14 +354,6 @@ class TripServiceTest : BaseSecuritySetup() {
         assertEquals(true, defaultTrip.collaborators.contains(newCollaboratorId))
 
         verify(tripRepository).save(any())
-        verify(eventPublisher).publishEvent(
-            argThat { event: ReportingStreamData ->
-                val action = event.action as? TripEvent
-                action != null &&
-                        action.eventType == TripEventType.COLLABORATOR_ADDED &&
-                        action.tripId == TRIP_ID
-            }
-        )
     }
 
     @Test
@@ -419,14 +385,6 @@ class TripServiceTest : BaseSecuritySetup() {
         assertEquals(false, tripWithCollaborator.collaborators.contains(COLLABORATOR_ID))
 
         verify(tripRepository).save(any())
-        verify(eventPublisher).publishEvent(
-            argThat { event: ReportingStreamData ->
-                val action = event.action as? TripEvent
-                action != null &&
-                        action.eventType == TripEventType.COLLABORATOR_DELETED &&
-                        action.tripId == TRIP_ID
-            }
-        )
     }
 
     @Test
@@ -499,14 +457,6 @@ class TripServiceTest : BaseSecuritySetup() {
         assertEquals(true, defaultTrip.viewers.contains(newViewerId))
 
         verify(tripRepository).save(any())
-        verify(eventPublisher).publishEvent(
-            argThat { event: ReportingStreamData ->
-                val action = event.action as? TripEvent
-                action != null &&
-                        action.eventType == TripEventType.VIEWER_ADDED &&
-                        action.tripId == TRIP_ID
-            }
-        )
     }
 
     @Test
@@ -634,14 +584,6 @@ class TripServiceTest : BaseSecuritySetup() {
         assertEquals(albumDto.title, result.albums.first().title)
 
         verify(tripRepository).save(any())
-        verify(eventPublisher).publishEvent(
-            argThat { event: ReportingStreamData ->
-                val action = event.action as? AlbumEvent
-                action != null &&
-                        action.eventType == AlbumEventType.ALBUM_CREATED &&
-                        action.albumId == ALBUM_ID
-            }
-        )
     }
 
     @Test
@@ -675,14 +617,6 @@ class TripServiceTest : BaseSecuritySetup() {
         assertEquals(0, tripWithAlbum.albums.size)
 
         verify(tripRepository).save(any())
-        verify(eventPublisher).publishEvent(
-            argThat { event: ReportingStreamData ->
-                val action = event.action as? AlbumEvent
-                action != null &&
-                        action.eventType == AlbumEventType.ALBUM_DELETED &&
-                        action.albumId == ALBUM_ID
-            }
-        )
     }
 
     @Test

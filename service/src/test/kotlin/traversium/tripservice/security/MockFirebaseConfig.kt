@@ -18,6 +18,14 @@ class MockFirebaseConfig {
 
     @Bean
     @Primary
+    fun initializeFirebase(): FirebaseApp {
+        val mockApp = mock(FirebaseApp::class.java)
+        `when`(mockApp.name).thenReturn("mock-firebase-app")
+        return mockApp
+    }
+
+    @Bean
+    @Primary
     fun firebaseAuth(): FirebaseAuth {
         val mockAuth = mock(FirebaseAuth::class.java)
         val mockToken = mock(FirebaseToken::class.java)

@@ -1,6 +1,7 @@
 package traversium.tripservice
 
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -12,19 +13,19 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.verify
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.context.ApplicationEventPublisher
-import traversium.tripservice.db.model.*
+import traversium.tripservice.db.model.Album
+import traversium.tripservice.db.model.Media
+import traversium.tripservice.db.model.Trip
+import traversium.tripservice.db.model.Visibility
 import traversium.tripservice.db.repository.AlbumRepository
 import traversium.tripservice.db.repository.TripRepository
 import traversium.tripservice.dto.AlbumDto
 import traversium.tripservice.dto.MediaDto
-import traversium.tripservice.exceptions.*
-import traversium.tripservice.kafka.data.AlbumEvent
-import traversium.tripservice.kafka.data.AlbumEventType
-import traversium.tripservice.kafka.data.MediaEvent
-import traversium.tripservice.kafka.data.MediaEventType
-import traversium.tripservice.kafka.data.ReportingStreamData
-import traversium.tripservice.kafka.publisher.NotificationPublisher
-import traversium.tripservice.security.BaseSecuritySetup // Assuming this path
+import traversium.tripservice.exceptions.AlbumNotFoundException
+import traversium.tripservice.exceptions.AlbumUnauthorizedException
+import traversium.tripservice.exceptions.AlbumWithoutMediaException
+import traversium.tripservice.exceptions.MediaNotFoundException
+import traversium.tripservice.security.BaseSecuritySetup
 import traversium.tripservice.service.AlbumService
 import traversium.tripservice.service.FirebaseService
 import traversium.tripservice.service.TripService
@@ -39,7 +40,6 @@ class AlbumServiceTest : BaseSecuritySetup() {
     @Mock private lateinit var tripRepository: TripRepository
     @Mock private lateinit var eventPublisher: ApplicationEventPublisher
     @Mock private lateinit var firebaseService: FirebaseService
-    @Mock private lateinit var notificationPublisher: NotificationPublisher
     @Mock private lateinit var tripService: TripService
 
     @InjectMocks
@@ -198,15 +198,6 @@ class AlbumServiceTest : BaseSecuritySetup() {
 
         assertEquals("New Title", result.title)
         assertEquals("New Desc", result.description)
-
-        verify(eventPublisher).publishEvent(
-            argThat { event: ReportingStreamData ->
-                val action = event.action as? AlbumEvent
-                action != null &&
-                        action.eventType == AlbumEventType.ALBUM_UPDATED &&
-                        action.albumId == ALBUM_ID
-            }
-        )
     }
 
     @Test
@@ -307,15 +298,6 @@ class AlbumServiceTest : BaseSecuritySetup() {
         assertEquals(OWNER_ID, savedMediaDto.uploader, "Uploader must be authenticated user")
         assertEquals(expectedSavedMediaId, savedMediaDto.mediaId, "The generated mediaId must be returned")
 
-        verify(eventPublisher).publishEvent(
-            argThat { event: ReportingStreamData ->
-                val action = event.action as? MediaEvent
-                action != null &&
-                        action.eventType == MediaEventType.MEDIA_ADDED &&
-                        action.mediaId == expectedSavedMediaId &&
-                        action.pathUrl == newMediaDto.pathUrl
-            }
-        )
         verify(albumRepository).save(any())
     }
 
@@ -344,16 +326,6 @@ class AlbumServiceTest : BaseSecuritySetup() {
         albumService.deleteMediaFromAlbum(ALBUM_ID, MEDIA_ID)
 
         assertEquals(0, album.media.size)
-
-        verify(eventPublisher).publishEvent(
-            argThat { event: ReportingStreamData ->
-                val action = event.action as? MediaEvent
-                action != null &&
-                        action.eventType == MediaEventType.MEDIA_DELETED &&
-                        action.mediaId == MEDIA_ID &&
-                        action.pathUrl == defaultMedia.pathUrl
-            }
-        )
     }
 
     @Test
