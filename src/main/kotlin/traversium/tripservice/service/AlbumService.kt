@@ -32,7 +32,6 @@ class AlbumService(
     private val albumRepository: AlbumRepository,
     private val tripRepository: TripRepository,
     private val eventPublisher: ApplicationEventPublisher,
-    private val notificationPublisher: NotificationPublisher,
     private val firebaseService: FirebaseService,
     private val tripService: TripService
 ) {
@@ -55,7 +54,7 @@ class AlbumService(
             commentReferenceId = null
         )
 
-        notificationPublisher.publish(event)
+        eventPublisher.publishEvent(event)
     }
 
     private fun getFirebaseIdFromContext(): String =

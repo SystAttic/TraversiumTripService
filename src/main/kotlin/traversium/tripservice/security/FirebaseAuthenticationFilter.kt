@@ -14,12 +14,9 @@ import org.springframework.web.filter.OncePerRequestFilter
 import traversium.commonmultitenancy.TenantContext
 import traversium.commonmultitenancy.TenantUtils
 import traversium.tripservice.service.FirebaseService
-import traversium.tripservice.service.TenantService
 
 @Component
 class FirebaseAuthenticationFilter(
-    private val firebaseService: FirebaseService,
-    private val tenantService: TenantService,
     private val firebaseAuth: FirebaseAuth,
     ) : OncePerRequestFilter(){
 
@@ -60,13 +57,10 @@ class FirebaseAuthenticationFilter(
                 token
             )
 
-            tenantService.setCurrentTenant(tenantId)
 
             filterChain.doFilter(request, response)
         } catch (ex: Exception) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, ex.message)
-        } finally {
-            tenantService.clear()
         }
     }
 

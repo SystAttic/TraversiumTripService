@@ -29,8 +29,7 @@ import java.util.UUID
 class TripService(
     private val tripRepository: TripRepository,
     private val eventPublisher: ApplicationEventPublisher,
-    private val firebaseService: FirebaseService,
-    private val notificationPublisher: NotificationPublisher
+    private val firebaseService: FirebaseService
 ) {
     private fun <T : DomainEvent> publishEvent(event: T) {
         val wrapped = ReportingStreamData(
@@ -51,7 +50,7 @@ class TripService(
             commentReferenceId = null
         )
 
-        notificationPublisher.publish(event)
+        eventPublisher.publishEvent(event)
     }
 
     private fun validateCollaborator(trip: Trip, collaboratorId: String) {
