@@ -5,6 +5,10 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import traversium.audit.kafka.ActivityType
+import traversium.audit.kafka.AuditStreamData
+import traversium.audit.kafka.EntityType
+import traversium.audit.kafka.TripActivityAction
 import traversium.notification.kafka.ActionType
 import traversium.notification.kafka.NotificationStreamData
 import traversium.tripservice.db.model.Visibility
@@ -57,6 +61,26 @@ class AlbumService(
         )
 
         eventPublisher.publishEvent(event)
+    }
+
+    private fun publishAuditEvent(firebaseId: String, action: String, entityType: EntityType, entityId: Long, tripId: Long, vararg metadata: Pair<String, String>) {
+        val auditEvent = AuditStreamData(
+            timestamp = OffsetDateTime.now(),
+            userId = firebaseId,
+            activityType = ActivityType.TRIP_ACTIVITY,
+            action = action,
+            entityType = entityType,
+            entityId = entityId,
+            tripId = tripId,
+            metadata = mapOf(
+                *metadata,
+                "tripId" to tripId,
+                "entityType" to entityType,
+                "action" to action
+            )
+        )
+
+        eventPublisher.publishEvent(auditEvent)
     }
 
     private fun getFirebaseIdFromContext(): String =
@@ -158,6 +182,10 @@ class AlbumService(
                 existingAlbum.albumId,
                 null
             )
+
+            // Audit - Album TITLE CHANGE
+            publishAuditEvent(firebaseId, TripActivityAction.ALBUM_TITLE_CHANGED.name, EntityType.ALBUM, existingAlbum.albumId!!, trip.tripId!!)
+
         }
 
         // Notification - Description change
@@ -170,7 +198,14 @@ class AlbumService(
                 existingAlbum.albumId,
                 null
             )
+
+            // Audit - Album DESCRIPTION CHANGE
+            publishAuditEvent(firebaseId, TripActivityAction.ALBUM_DESCRIPTION_CHANGED.name, EntityType.ALBUM, existingAlbum.albumId!!, trip.tripId!!)
+
         }
+
+        // Audit - Album INFO CHANGE
+        publishAuditEvent(firebaseId, TripActivityAction.ALBUM_INFO_CHANGED.name, EntityType.ALBUM, existingAlbum.albumId!!,trip.tripId!!)
 
         return albumRepository.save(updatedAlbum).toDto()
     }
@@ -242,6 +277,11 @@ class AlbumService(
             savedMedia.mediaId,
         )
 
+        // TODO - PHOTO->MEDIA in Auditor EntityType
+        // Audit - Media UPLOADED
+        publishAuditEvent(firebaseId, TripActivityAction.MEDIA_UPLOADED.name, EntityType.PHOTO, savedMedia.mediaId!!,trip.tripId!!)
+
+
         return savedAlbum.toDto()
     }
 
@@ -283,6 +323,11 @@ class AlbumService(
                     album.albumId,
                     media.mediaId
                 )
+
+                // TODO - PHOTO->MEDIA in Auditor EntityType
+                // Audit - Media DELETED
+                publishAuditEvent(firebaseId, TripActivityAction.MEDIA_DELETED.name, EntityType.PHOTO, media.mediaId!!,trip.tripId!!)
+
             } catch (_: Exception) {
                 throw MediaNotFoundException(mediaId)
             }

@@ -20,7 +20,10 @@ import traversium.tripservice.kafka.data.DomainEvent
 import traversium.tripservice.kafka.data.ReportingStreamData
 import traversium.tripservice.kafka.data.TripEvent
 import traversium.tripservice.kafka.data.TripEventType
-import traversium.tripservice.kafka.publisher.NotificationPublisher
+import traversium.audit.kafka.ActivityType
+import traversium.audit.kafka.AuditStreamData
+import traversium.audit.kafka.EntityType
+import traversium.audit.kafka.TripActivityAction
 import java.time.OffsetDateTime
 import java.time.YearMonth
 import java.util.UUID
@@ -53,6 +56,26 @@ class TripService(
         )
 
         eventPublisher.publishEvent(event)
+    }
+
+    private fun publishAuditEvent(firebaseId: String, action: String, entityType: EntityType, entityId: Long, tripId: Long, vararg metadata: Pair<String, String>) {
+        val auditEvent = AuditStreamData(
+            timestamp = OffsetDateTime.now(),
+            userId = firebaseId,
+            activityType = ActivityType.TRIP_ACTIVITY,
+            action = action,
+            entityType = entityType,
+            entityId = entityId,
+            tripId = tripId,
+            metadata = mapOf(
+                *metadata,
+                "tripId" to tripId,
+                "entityType" to entityType,
+                "action" to action
+            )
+        )
+
+        eventPublisher.publishEvent(auditEvent)
     }
 
     private fun validateCollaborator(trip: Trip, collaboratorId: String) {
@@ -190,6 +213,10 @@ class TripService(
             null,
             null
         )
+
+        // Audit - Trip CREATE
+        publishAuditEvent(firebaseId, TripActivityAction.TRIP_CREATED.name, EntityType.TRIP, saved.tripId!!,saved.tripId!!)
+
         return saved.toDto()
     }
 
@@ -219,6 +246,10 @@ class TripService(
             null,
             null
         )
+
+        // Audit - Trip DELETE
+        publishAuditEvent(firebaseId, TripActivityAction.TRIP_DELETED.name, EntityType.TRIP, trip.tripId!!,trip.tripId!!)
+
         tripRepository.delete(trip)
     }
 
@@ -260,6 +291,10 @@ class TripService(
                 null,
                 null
             )
+
+            // Audit - Trip TITLE CHANGE
+            publishAuditEvent(firebaseId, TripActivityAction.TRIP_NAME_CHANGED.name, EntityType.TRIP, mergedTrip.tripId!!, mergedTrip.tripId!!)
+
         }
 
         // Notification - Description change
@@ -272,6 +307,10 @@ class TripService(
                 null,
                 null
             )
+
+            // Audit - Trip DESCRIPTION CHANGE
+            publishAuditEvent(firebaseId, TripActivityAction.TRIP_DESCRIPTION_CHANGED.name, EntityType.TRIP, mergedTrip.tripId!!, mergedTrip.tripId!!)
+
         }
 
         // Notification - Cover photo change
@@ -284,7 +323,30 @@ class TripService(
                 null,
                 null
             )
+
+            // Audit - Trip COVER PHOTO CHANGE
+            publishAuditEvent(firebaseId, TripActivityAction.TRIP_COVER_PHOTO_CHANGED.name, EntityType.TRIP, mergedTrip.tripId!!,mergedTrip.tripId!!)
+
         }
+
+        // TODO - add CHANGE_VISIBILITY -> NotificationService (uncomment after adding)
+//        // Notification - Visibility change
+//        if (updated.visibility != null && updated.visibility != existingTrip.visibility) {
+//            publishNotification(
+//                ActionType.CHANGE_VISIBILITY,
+//                firebaseId,
+//                mergedTrip.collaborators,
+//                mergedTrip.tripId,
+//                null,
+//                null
+//            )
+//
+//            // Audit - Trip VISIBILITY CHANGE
+//            publishAuditEvent(firebaseId, TripActivityAction.TRIP_VISIBILITY_CHANGED.name, EntityType.TRIP, mergedTrip.tripId!!, mergedTrip.tripId!!)
+//        }
+
+        // Audit - Trip INFO CHANGE
+        publishAuditEvent(firebaseId, TripActivityAction.TRIP_INFO_CHANGED.name, EntityType.TRIP, mergedTrip.tripId!!,mergedTrip.tripId!!)
 
         return tripRepository.save(mergedTrip).toDto()
     }
@@ -352,6 +414,11 @@ class TripService(
             null,
             null
         )
+
+        // TODO - for future: EntityType: COLLABORATOR
+        // Audit - Trip COLLABORATOR INVITED
+        publishAuditEvent(firebaseId, TripActivityAction.TRIP_COLLABORATOR_INVITED.name, EntityType.TRIP, saved.tripId!!,saved.tripId!!)
+
         return saved.toDto()
     }
 
@@ -387,6 +454,11 @@ class TripService(
                 null,
                 null
             )
+
+            // TODO - for future: EntityType: COLLABORATOR
+            // Audit - Trip COLLABORATOR REMOVED
+            publishAuditEvent(firebaseId, TripActivityAction.TRIP_COLLABORATOR_REMOVED.name, EntityType.TRIP, trip.tripId!!,trip.tripId!!)
+
             tripRepository.save(trip)
         } else throw TripWithoutCollaboratorException(tripId,collaboratorId)
     }
@@ -448,6 +520,11 @@ class TripService(
             null,
             null
         )
+
+        // TODO - for future: EntityType: VIEWER
+        // Audit - Trip VIEWER INVITED
+        publishAuditEvent(firebaseId, TripActivityAction.TRIP_VIEWER_INVITED.name, EntityType.TRIP, saved.tripId!!, saved.tripId!!)
+
         return saved.toDto()
     }
 
@@ -481,6 +558,11 @@ class TripService(
                 null,
                 null
             )
+
+            // TODO - for future: EntityType: VIEWER
+            // Audit - Trip VIEWER REMOVED
+            publishAuditEvent(firebaseId, TripActivityAction.TRIP_VIEWER_REMOVED.name, EntityType.TRIP, trip.tripId!!, trip.tripId!!)
+
             tripRepository.save(trip)
         } else throw TripWithoutViewerException(tripId,viewerId)
     }
@@ -511,7 +593,6 @@ class TripService(
         if (!trip.collaborators.contains(firebaseId))
             throw TripUnauthorizedException("User is not authorized to perform this operation.")
 
-        val originalDescription = dto.description
         val marker = UUID.randomUUID().toString()
 
         val newAlbum = dto.toAlbum().copy(
@@ -547,6 +628,10 @@ class TripService(
             null
         )
 
+        // Audit - Album CREATE
+        publishAuditEvent(firebaseId, TripActivityAction.ALBUM_CREATED.name, EntityType.ALBUM, albumId,savedTripDto.tripId!!)
+
+
         return savedTripDto
     }
 
@@ -581,6 +666,10 @@ class TripService(
                 albumId,
                 null
             )
+
+            // Audit - Album DELETE
+            publishAuditEvent(firebaseId, TripActivityAction.ALBUM_DELETED.name, EntityType.ALBUM, albumId, trip.tripId!!)
+
 
             tripRepository.save(trip)
         }else

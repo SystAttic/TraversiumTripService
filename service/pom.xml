@@ -165,6 +165,13 @@
             <version>1.2.0</version>
         </dependency>
 
+        <!-- Audit -->
+        <dependency>
+            <groupId>traversium</groupId>
+            <artifactId>audit-models</artifactId>
+            <version>1.1.0</version>
+        </dependency>
+
         <!-- Tests -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -265,6 +272,13 @@
         <repository>
             <id>github-notification</id>
             <url>https://maven.pkg.github.com/SystAttic/TraversiumNotificationService</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>github-audit</id>
+            <url>https://maven.pkg.github.com/SystAttic/TraversiumAuditService</url>
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>
