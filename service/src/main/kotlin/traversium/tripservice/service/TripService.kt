@@ -8,7 +8,6 @@ import org.springframework.transaction.annotation.Transactional
 import traversium.notification.kafka.ActionType
 import traversium.notification.kafka.NotificationStreamData
 import traversium.tripservice.db.model.Trip
-import traversium.tripservice.db.model.Visibility
 import traversium.tripservice.db.model.Album
 import traversium.tripservice.db.repository.AlbumRepository
 import traversium.tripservice.dto.TripDto
@@ -47,7 +46,7 @@ class TripService(
         eventPublisher.publishEvent(wrapped)
     }
 
-    private fun publishNotification(action: ActionType, sender: String, collaborators: List<String>, trip: Long?, album: Long?, mediaId: Long?) {
+    private fun publishNotification(action: ActionType, sender: String, collaborators: List<String>, trip: Long?, album: Long?) {
         val event = NotificationStreamData(
             senderId = sender,
             receiverIds = collaborators,
@@ -56,7 +55,7 @@ class TripService(
             collectionReferenceId = trip,
             nodeReferenceId = album,
             commentReferenceId = null,
-            mediaReferenceId = mediaId,
+            mediaReferenceId = null
         )
 
         eventPublisher.publishEvent(event)
@@ -177,7 +176,8 @@ class TripService(
 
         // DEFAULT ALBUM
         val defaultAlbum = Album(
-            title = "Default moment"
+            title = "Default moment",
+            description = ""
         )
 
         try {
@@ -227,7 +227,6 @@ class TripService(
             saved.collaborators,
             saved.tripId,
             null,
-            null
         )
 
         // Audit - Trip CREATE
@@ -260,7 +259,6 @@ class TripService(
             trip.collaborators,
             trip.tripId,
             null,
-            null
         )
 
         // Audit - Trip DELETE
@@ -305,7 +303,6 @@ class TripService(
                 mergedTrip.collaborators,
                 mergedTrip.tripId,
                 null,
-                null
             )
 
             // Audit - Trip TITLE CHANGE
@@ -321,7 +318,6 @@ class TripService(
                 mergedTrip.collaborators,
                 mergedTrip.tripId,
                 null,
-                null
             )
 
             // Audit - Trip DESCRIPTION CHANGE
@@ -337,7 +333,6 @@ class TripService(
                 mergedTrip.collaborators,
                 mergedTrip.tripId,
                 null,
-                null
             )
 
             // Audit - Trip COVER PHOTO CHANGE
@@ -354,7 +349,6 @@ class TripService(
 //                mergedTrip.collaborators,
 //                mergedTrip.tripId,
 //                null,
-//                null
 //            )
 //
 //            // Audit - Trip VISIBILITY CHANGE
@@ -428,7 +422,6 @@ class TripService(
             saved.collaborators,
             saved.tripId,
             null,
-            null
         )
 
         // TODO - for future: EntityType: COLLABORATOR
@@ -468,7 +461,6 @@ class TripService(
                 trip.collaborators,
                 trip.tripId,
                 null,
-                null
             )
 
             // TODO - for future: EntityType: COLLABORATOR
@@ -534,7 +526,6 @@ class TripService(
             saved.collaborators,
             saved.tripId,
             null,
-            null
         )
 
         // TODO - for future: EntityType: VIEWER
@@ -572,7 +563,6 @@ class TripService(
                 trip.collaborators,
                 trip.tripId,
                 null,
-                null
             )
 
             // TODO - for future: EntityType: VIEWER
@@ -641,7 +631,6 @@ class TripService(
             savedTripDto.collaborators,
             savedTripDto.tripId,
             albumId,
-            null
         )
 
         // Audit - Album CREATE
@@ -659,6 +648,9 @@ class TripService(
         if (!trip.collaborators.contains(firebaseId)) {
             throw TripUnauthorizedException("User is not authorized to perform this operation.")
         }
+
+        if (trip.defaultAlbum == albumId)
+            throw AlbumUnauthorizedException("Cannot delete Default album.")
 
         if(trip.albums.any { it.albumId == albumId }) {
             val album = trip.albums.find { it.albumId == albumId }
@@ -680,7 +672,6 @@ class TripService(
                 trip.collaborators,
                 trip.tripId,
                 albumId,
-                null
             )
 
             // Audit - Album DELETE

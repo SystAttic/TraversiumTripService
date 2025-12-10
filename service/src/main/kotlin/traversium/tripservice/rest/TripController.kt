@@ -660,8 +660,8 @@ class TripController(
         } catch (_: TripNotFoundException) {
             logger.warn("Trip $tripId not found.")
             ResponseEntity.notFound().build()
-        } catch (_: AlbumUnauthorizedException) {
-            logger.warn("User is not authorized to delete album $albumId.")
+        } catch (e: AlbumUnauthorizedException) {
+            logger.warn("User is not authorized to delete album $albumId: ${e.message}")
             ResponseEntity.status(HttpStatus.FORBIDDEN).build()
         } catch (_: Exception){
             logger.warn("Album $albumId for trip $tripId not found.")

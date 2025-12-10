@@ -11,6 +11,7 @@ import traversium.audit.kafka.EntityType
 import traversium.audit.kafka.TripActivityAction
 import traversium.notification.kafka.ActionType
 import traversium.notification.kafka.NotificationStreamData
+import traversium.tripservice.db.model.Media
 import traversium.tripservice.db.model.Visibility
 import traversium.tripservice.dto.AlbumDto
 import traversium.tripservice.exceptions.AlbumNotFoundException
@@ -19,6 +20,7 @@ import traversium.tripservice.db.repository.TripRepository
 import traversium.tripservice.dto.MediaDto
 import traversium.tripservice.exceptions.AlbumUnauthorizedException
 import traversium.tripservice.exceptions.AlbumWithoutMediaException
+import traversium.tripservice.exceptions.DatabaseException
 import traversium.tripservice.exceptions.MediaNotFoundException
 import traversium.tripservice.exceptions.TripNotFoundException
 import traversium.tripservice.kafka.data.AlbumEvent
@@ -27,7 +29,6 @@ import traversium.tripservice.kafka.data.DomainEvent
 import traversium.tripservice.kafka.data.MediaEvent
 import traversium.tripservice.kafka.data.MediaEventType
 import traversium.tripservice.kafka.data.ReportingStreamData
-import traversium.tripservice.kafka.publisher.NotificationPublisher
 import java.time.OffsetDateTime
 import java.time.YearMonth
 
@@ -229,60 +230,95 @@ class AlbumService(
         }
     }
 
+    data class FailedMediaItem(
+        val pathUrl: String, // The pathUrl of the media that failed
+        val reason: String // The reason for the failure
+    )
+
     @Transactional
-    fun addMediaToAlbum(albumId: Long, dto: MediaDto) : AlbumDto {
+    fun addMediaToAlbum(albumId: Long, dtos: List<MediaDto>) : AlbumDto {
         val firebaseId = getFirebaseIdFromContext()
         val tripId = getTripIdByAlbumId(albumId)
         authorizeModify(tripId, firebaseId)
-
-        val media = dto.copy(
-            uploader = firebaseId
-        ).toMedia()
 
         val album = albumRepository.findById(albumId).orElseThrow{ AlbumNotFoundException(albumId) }
         val trip = tripRepository.findById(tripId).orElseThrow {
             TripNotFoundException(tripId)
         }
 
-        try {
-            album.media.add(media)
-        } catch (_: Exception) {
-            throw IllegalArgumentException("Failed to add media to album list.")
+        val successfulMedia = mutableListOf<Media>()
+        val failedMedia = mutableListOf<FailedMediaItem>()
+        val mediaToSave = mutableListOf<Media>()
+
+        dtos.forEach {
+            dto ->
+                try{
+                    val media = dto.copy(uploader = firebaseId).toMedia()
+                    mediaToSave.add(media)
+                } catch (e: Exception) {
+                    failedMedia.add(FailedMediaItem(dto.pathUrl ?: "", "Media DTO conversion failed: ${e.message}"))
+                }
         }
 
+        // Exit early if no media items are valid
+        if (mediaToSave.isEmpty() && failedMedia.isNotEmpty()) {
+            return album.toDto()
+        }
+
+        // Add all media from mediaToSave to album
+        try {
+            album.media.addAll(mediaToSave)
+        } catch (e: Exception) {
+            throw IllegalArgumentException("Failed to save media to album: ${e.message}")
+        }
+
+        // Save the album
         val savedAlbum = try {
             albumRepository.save(album)
-        } catch (_: Exception) {
-            throw IllegalArgumentException("Failed to save album with new media.")
+        } catch (e: Exception) {
+            throw DatabaseException("Failed to save album with batch media: ${e.message}")
         }
 
-        val savedMedia = savedAlbum.media
-            .firstOrNull { it.pathUrl == media.pathUrl && it.uploader == firebaseId }
-            ?: throw IllegalArgumentException("Media not found in saved album, ID generation failed.")
+        // Map savedMedia to send out Kafka Reports and Kafka Audits for each
+        val savedMediaMap = savedAlbum.media
+            .filter { it.uploader == firebaseId && mediaToSave.any { m -> m.pathUrl == it.pathUrl } }
+            .associateBy { it.pathUrl }
 
-        publishEvent(
-            MediaEvent(
-                eventType = MediaEventType.MEDIA_ADDED,
-                mediaId = savedMedia.mediaId,
-                pathUrl = savedMedia.pathUrl,
+        mediaToSave.forEach { media ->
+            val savedMedia = savedMediaMap[media.pathUrl]
+            if (savedMedia != null && savedMedia.mediaId != null) {
+                successfulMedia.add(savedMedia)
+
+                // Publish events only for successfully saved media
+                publishEvent(
+                    MediaEvent(
+                        eventType = MediaEventType.MEDIA_ADDED,
+                        mediaId = savedMedia.mediaId,
+                        pathUrl = savedMedia.pathUrl,
+                    )
+                )
+                // Audit
+                publishAuditEvent(firebaseId, TripActivityAction.MEDIA_UPLOADED.name, EntityType.PHOTO, savedMedia.mediaId!!, trip.tripId!!)
+            } else {
+                // This is unlikely if the save succeeded but acts as a safety net
+                failedMedia.add(FailedMediaItem(media.pathUrl ?: "", "Media ID generation failed after successful transaction."))
+            }
+        }
+
+        // Notification (only one call after the batch)
+        if (successfulMedia.isNotEmpty()) {
+            val mediaIds = successfulMedia.mapNotNull { it.mediaId }
+            // For now, calling it once, uses the first Media ID in batch.
+            // TODO: adapt API for batch notification -> change to notify the number of added Media
+            publishNotification(
+                ActionType.ADD,
+                firebaseId,
+                trip.collaborators,
+                trip.tripId,
+                savedAlbum.albumId,
+                mediaIds.firstOrNull(), // Use the first ID or null
             )
-        )
-
-        // Notification - Media UPLOAD_MEDIA
-        publishNotification(
-            ActionType.ADD,
-            firebaseId,
-            trip.collaborators,
-            trip.tripId,
-            savedAlbum.albumId,
-            savedMedia.mediaId,
-        )
-
-        // TODO - PHOTO->MEDIA in Auditor EntityType
-        // Audit - Media UPLOADED
-        publishAuditEvent(firebaseId, TripActivityAction.MEDIA_UPLOADED.name, EntityType.PHOTO, savedMedia.mediaId!!,trip.tripId!!)
-
-
+        }
         return savedAlbum.toDto()
     }
 

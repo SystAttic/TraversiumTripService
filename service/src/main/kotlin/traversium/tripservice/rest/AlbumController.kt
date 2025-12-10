@@ -235,10 +235,10 @@ class AlbumController(
     )
     fun addMediaToAlbum(
         @PathVariable albumId: Long,
-        @RequestBody mediaDto: MediaDto
+        @RequestBody mediaDtos: List<MediaDto>
     ) : ResponseEntity<AlbumDto> {
         return try {
-            val album = albumService.addMediaToAlbum(albumId, mediaDto)
+            val album = albumService.addMediaToAlbum(albumId, mediaDtos)
             logger.info("Media added to album $albumId.")
             ResponseEntity.ok(album)
         } catch (_: AlbumNotFoundException) {
@@ -250,6 +250,9 @@ class AlbumController(
         } catch (_: IllegalArgumentException) {
             logger.warn("Bad request - invalid media data provided.")
             ResponseEntity.badRequest().build()
+        } catch (e: DatabaseException){
+            logger.warn(e.message.toString())
+            ResponseEntity.status(HttpStatus.BAD_REQUEST).build()
         }
     }
 

@@ -271,7 +271,7 @@ class AlbumServiceTest : BaseSecuritySetup() {
 
         val initialAlbum = defaultAlbum.copy(media = mutableListOf())
 
-        val newMediaDto = MediaDto(null, "new_file.png", null, "image", "png", 50L)
+        val mediaDtos = listOf(MediaDto(null, "new_file.png", null, "image", "png", 50L))
         val expectedSavedMediaId = 123L
 
         mockAlbumToTripLink()
@@ -290,7 +290,7 @@ class AlbumServiceTest : BaseSecuritySetup() {
             )
         }
 
-        val result = albumService.addMediaToAlbum(ALBUM_ID, newMediaDto)
+        val result = albumService.addMediaToAlbum(ALBUM_ID,  mediaDtos)
 
         assertEquals(1, result.media.size)
         val savedMediaDto = result.media.first()
@@ -304,11 +304,12 @@ class AlbumServiceTest : BaseSecuritySetup() {
     @Test
     fun `addMediaToAlbum unauthorized if viewer`() {
         val trip = getTestTrip(ownerId = OTHER_USER_ID, visibility = Visibility.PRIVATE, collaborators = emptyList(), viewers = listOf(OWNER_ID))
+        val mediaDtos = listOf(MediaDto(null, "x.jpg", null, "img", "jpg", 1L))
         mockAlbumToTripLink()
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(trip))
 
         assertThrows(AlbumUnauthorizedException::class.java) {
-            albumService.addMediaToAlbum(ALBUM_ID, MediaDto(null, "x.jpg", null, "img", "jpg", 1L))
+            albumService.addMediaToAlbum(ALBUM_ID, mediaDtos)
         }
         verify(albumRepository, never()).save(any())
     }
