@@ -5,6 +5,8 @@ import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.junit.jupiter.api.BeforeEach
+import org.mockito.kotlin.any
+import org.mockito.kotlin.given
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
@@ -23,6 +25,7 @@ import org.springframework.kafka.test.context.EmbeddedKafka
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.TestPropertySource
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import traversium.audit.kafka.AuditStreamData
@@ -40,13 +43,15 @@ import traversium.tripservice.security.BaseSecuritySetup
 import traversium.tripservice.security.MockFirebaseConfig
 import traversium.tripservice.security.TestMultitenancyConfig
 import traversium.tripservice.service.AlbumService
+import traversium.tripservice.service.ModerationServiceGrpcClient
 import traversium.tripservice.service.TripService
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @SpringBootTest(
-    classes = [TripServiceApplication::class]
+    classes = [TripServiceApplication::class],
+    properties = ["grpc.server.enabled=false"]
 )
 @ActiveProfiles("test")
 @EmbeddedKafka(
@@ -82,12 +87,19 @@ class TripServiceKafkaTests() : BaseSecuritySetup() {
     @Autowired
     lateinit var auditingKafkaConsumer: KafkaConsumerConfiguration.AuditingKafkaConsumer
 
+    @MockitoBean
+    private lateinit var moderationServiceGrpcClient: ModerationServiceGrpcClient
+
     // --- Test Constants ---
     private val COLLABORATOR_ID = "test_collab_1"
     private val VIEWER_ID = "test_viewer_1"
 
     @BeforeEach
     fun beforeEach() {
+        given(moderationServiceGrpcClient.isTextAllowed(any()))
+            .willReturn(true)
+
+
         reportingKafkaConsumer.clearMessages()
         notificationKafkaConsumer.clearMessages()
         auditingKafkaConsumer.clearMessages()
@@ -245,7 +257,7 @@ class TripServiceKafkaTests() : BaseSecuritySetup() {
         recieveAndClearKafkaMessages()
 
         val savedAlbum = tripService.addAlbumToTrip(savedTrip.tripId!!, albumDto)
-        val saved = tripService.getAlbumFromTrip(savedTrip.tripId!!, savedAlbum.albums.first().albumId!!)
+        val saved = tripService.getAlbumFromTrip(savedTrip.tripId!!, savedAlbum.albums.last().albumId!!)
 
         testKafkaMessages(saved, AlbumEventType.ALBUM_CREATED, ActionType.CREATE, TripActivityAction.ALBUM_CREATED)
     }
@@ -301,8 +313,8 @@ class TripServiceKafkaTests() : BaseSecuritySetup() {
         tripService.addAlbumToTrip(savedTrip.tripId!!, albumDto)
         recieveAndClearKafkaMessages()
 
-        val deletedAlbum = tripService.getAlbumFromTrip(savedTrip.tripId!!, 1L)
-        tripService.deleteAlbumFromTrip(savedTrip.tripId!!, 1L)
+        val deletedAlbum = tripService.getAlbumFromTrip(savedTrip.tripId!!, 2L)
+        tripService.deleteAlbumFromTrip(savedTrip.tripId!!, 2L)
 
         testKafkaMessages(deletedAlbum, AlbumEventType.ALBUM_DELETED, ActionType.DELETE, TripActivityAction.ALBUM_DELETED)
     }

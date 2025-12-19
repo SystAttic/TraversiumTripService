@@ -11,6 +11,7 @@ import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
+import org.mockito.kotlin.given
 import org.mockito.kotlin.verify
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.context.ApplicationEventPublisher
@@ -18,16 +19,15 @@ import traversium.tripservice.db.model.Album
 import traversium.tripservice.db.model.Media
 import traversium.tripservice.db.model.Trip
 import traversium.tripservice.db.model.Visibility
+import traversium.tripservice.db.repository.AlbumRepository
 import traversium.tripservice.db.repository.TripRepository
 import traversium.tripservice.dto.AlbumDto
 import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.*
-import traversium.tripservice.kafka.data.ReportingStreamData
-import traversium.tripservice.kafka.data.TripEvent
-import traversium.tripservice.kafka.data.TripEventType
 import traversium.tripservice.kafka.publisher.NotificationPublisher
 import traversium.tripservice.security.BaseSecuritySetup
 import traversium.tripservice.service.FirebaseService
+import traversium.tripservice.service.ModerationServiceGrpcClient
 import traversium.tripservice.service.TripService
 import java.time.OffsetDateTime
 import java.util.*
@@ -40,6 +40,9 @@ class TripServiceTest : BaseSecuritySetup() {
     private lateinit var tripRepository: TripRepository
 
     @Mock
+    private lateinit var albumRepository: AlbumRepository
+
+    @Mock
     private lateinit var eventPublisher: ApplicationEventPublisher
 
     @Mock
@@ -47,6 +50,11 @@ class TripServiceTest : BaseSecuritySetup() {
 
     @Mock
     private lateinit var firebaseService: FirebaseService
+
+
+    @Mock
+    private lateinit var moderationServiceGrpcClient: ModerationServiceGrpcClient
+
 
     @InjectMocks
     private lateinit var tripService: TripService
@@ -92,7 +100,11 @@ class TripServiceTest : BaseSecuritySetup() {
             (invocation.arguments[0] as Trip).copy(tripId = TRIP_ID)
         }
 
+        given(moderationServiceGrpcClient.isTextAllowed(any()))
+            .willReturn(true)
+
         val result = tripService.createTrip(dto)
+
 
         assertEquals(TRIP_ID, result.tripId)
         assertEquals(OWNER_ID, result.ownerId, "Owner must be the authenticated user")
@@ -254,6 +266,9 @@ class TripServiceTest : BaseSecuritySetup() {
 
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(defaultTrip))
         `when`(tripRepository.save(any<Trip>())).thenAnswer { it.arguments[0] }
+
+        given(moderationServiceGrpcClient.isTextAllowed(any()))
+            .willReturn(true)
 
         val result = tripService.updateTrip(updatedDto)
 
@@ -569,6 +584,9 @@ class TripServiceTest : BaseSecuritySetup() {
 
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(collabTrip))
         `when`(tripRepository.save(any<Trip>())).thenAnswer { it.arguments[0] }
+
+        given(moderationServiceGrpcClient.isTextAllowed(any()))
+            .willReturn(true)
 
         val result = tripService.addAlbumToTrip(TRIP_ID, albumDto)
 

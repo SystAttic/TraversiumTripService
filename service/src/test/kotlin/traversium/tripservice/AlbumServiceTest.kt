@@ -10,6 +10,7 @@ import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.given
 import org.mockito.kotlin.verify
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.context.ApplicationEventPublisher
@@ -28,6 +29,7 @@ import traversium.tripservice.exceptions.MediaNotFoundException
 import traversium.tripservice.security.BaseSecuritySetup
 import traversium.tripservice.service.AlbumService
 import traversium.tripservice.service.FirebaseService
+import traversium.tripservice.service.ModerationServiceGrpcClient
 import traversium.tripservice.service.TripService
 import java.time.OffsetDateTime
 import java.util.*
@@ -41,6 +43,8 @@ class AlbumServiceTest : BaseSecuritySetup() {
     @Mock private lateinit var eventPublisher: ApplicationEventPublisher
     @Mock private lateinit var firebaseService: FirebaseService
     @Mock private lateinit var tripService: TripService
+    @Mock private lateinit var moderationServiceGrpcClient: ModerationServiceGrpcClient
+
 
     @InjectMocks
     private lateinit var albumService: AlbumService
@@ -194,6 +198,10 @@ class AlbumServiceTest : BaseSecuritySetup() {
         `when`(tripService.getByTripId(TRIP_ID)).thenReturn(trip.toDto())
 
         val updatedDto = AlbumDto(null, "New Title", "New Desc", emptyList())
+
+        given(moderationServiceGrpcClient.isTextAllowed(any()))
+            .willReturn(true)
+
         val result = albumService.updateAlbum(ALBUM_ID, updatedDto)
 
         assertEquals("New Title", result.title)
