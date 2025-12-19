@@ -11,11 +11,13 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import traversium.tripservice.dto.AlbumDto
 import traversium.tripservice.dto.TripDto
+import traversium.tripservice.exceptions.AlbumModerationException
 import traversium.tripservice.exceptions.AlbumNotFoundException
 import traversium.tripservice.exceptions.AlbumUnauthorizedException
 import traversium.tripservice.exceptions.TripAlreadyExistsException
 import traversium.tripservice.exceptions.TripHasCollaboratorException
 import traversium.tripservice.exceptions.TripHasViewerException
+import traversium.tripservice.exceptions.TripModerationException
 import traversium.tripservice.exceptions.TripNotFoundException
 import traversium.tripservice.exceptions.TripUnauthorizedException
 import traversium.tripservice.exceptions.TripWithoutCollaboratorException
@@ -198,6 +200,12 @@ class TripController(
         } catch (_: TripHasCollaboratorException) {
             logger.warn("Trip already has a collaborator.")
             ResponseEntity.badRequest().build()
+        } catch (e: TripModerationException){
+            logger.warn("Trip moderation failed: ${e.message}")
+            when (e.cause) {
+                null -> ResponseEntity.unprocessableEntity().build()
+                else -> ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build()
+            }
         } catch (e: Exception){
             logger.warn(e.message.toString())
             ResponseEntity.badRequest().build()
@@ -246,8 +254,14 @@ class TripController(
             logger.warn("Trip ${tripDto.tripId} not found.")
             ResponseEntity.notFound().build()
         } catch (_: TripUnauthorizedException) {
-            logger.warn("")
+            logger.warn("User is not authorized to update trip.")
             ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+        } catch (e: TripModerationException){
+            logger.warn("Trip moderation failed: ${e.message}")
+            when (e.cause) {
+                null -> ResponseEntity.unprocessableEntity().build()
+                else -> ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build()
+            }
         } catch (e: Exception){
             logger.warn(e.message.toString())
             ResponseEntity.badRequest().build()
@@ -620,6 +634,12 @@ class TripController(
         } catch (_: TripNotFoundException) {
             logger.warn("Trip $tripId not found.")
             ResponseEntity.notFound().build()
+        } catch (e: AlbumModerationException){
+            logger.warn("Album moderation failed: ${e.message}")
+            when (e.cause) {
+                null -> ResponseEntity.unprocessableEntity().build()
+                else -> ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build()
+            }
         } catch (_: Exception) {
             logger.warn("Invalid album data provided.")
             ResponseEntity.badRequest().build()

@@ -18,6 +18,7 @@ import traversium.tripservice.exceptions.AlbumNotFoundException
 import traversium.tripservice.db.repository.AlbumRepository
 import traversium.tripservice.db.repository.TripRepository
 import traversium.tripservice.dto.MediaDto
+import traversium.tripservice.exceptions.AlbumModerationException
 import traversium.tripservice.exceptions.AlbumUnauthorizedException
 import traversium.tripservice.exceptions.AlbumWithoutMediaException
 import traversium.tripservice.exceptions.DatabaseException
@@ -39,7 +40,8 @@ class AlbumService(
     private val tripRepository: TripRepository,
     private val eventPublisher: ApplicationEventPublisher,
     private val firebaseService: FirebaseService,
-    private val tripService: TripService
+    private val tripService: TripService,
+    private val moderationServiceGrpcClient: ModerationServiceGrpcClient
 ) {
     private fun <T : DomainEvent> publishEvent(event: T) {
         val wrapped = ReportingStreamData(
@@ -164,6 +166,24 @@ class AlbumService(
             title = dto.title ?: existingAlbum.title,
             description = dto.description ?: existingAlbum.description,
         )
+
+        // Moderate Trip text fields
+        val allowed = try {
+            val textToModerate = buildString {
+                append(updatedAlbum.title)
+                append(" ")
+                append(updatedAlbum.description)
+            }
+            moderationServiceGrpcClient.isTextAllowed(textToModerate)
+        } catch (e: Exception) {
+            throw AlbumModerationException("Moderation service unavailable",e)
+        }
+        // Block Trip creation if text not allowed
+        if (!allowed) {
+            throw AlbumModerationException(
+                "Album content violates moderation policy!"
+            )
+        }
 
         // Kafka event - Album UPDATE
         publishEvent(

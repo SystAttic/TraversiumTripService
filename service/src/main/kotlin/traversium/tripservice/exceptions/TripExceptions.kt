@@ -12,3 +12,4 @@ class TripWithoutViewerException(tripId: Long, viewerId: String) : RuntimeExcept
 class TripHasViewerException(viewerId: String) : RuntimeException("Viewer with ID '$viewerId' already exists in trip.")
 
 class TripUnauthorizedException(message: String) : RuntimeException(message)
+class TripModerationException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)

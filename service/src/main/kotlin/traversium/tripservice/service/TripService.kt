@@ -36,7 +36,8 @@ class TripService(
     private val tripRepository: TripRepository,
     private val albumRepository: AlbumRepository,
     private val eventPublisher: ApplicationEventPublisher,
-    private val firebaseService: FirebaseService
+    private val firebaseService: FirebaseService,
+    private val moderationServiceGrpcClient: ModerationServiceGrpcClient
 ) {
     private fun <T : DomainEvent> publishEvent(event: T) {
         val wrapped = ReportingStreamData(
@@ -206,6 +207,24 @@ class TripService(
             trip.viewers.add(viewerId)
         }
 
+        // Moderate Trip text fields
+        val allowed = try {
+            val textToModerate = buildString {
+                append(trip.title)
+                append(" ")
+                append(trip.description)
+            }
+            moderationServiceGrpcClient.isTextAllowed(textToModerate)
+        } catch (e: Exception) {
+            throw TripModerationException("Moderation service unavailable",e)
+        }
+        // Block Trip creation if text not allowed
+        if (!allowed) {
+            throw TripModerationException(
+                "Trip content violates moderation policy!"
+            )
+        }
+
         val saved = try {
             tripRepository.save(trip)
         } catch (_: Exception) {
@@ -286,6 +305,25 @@ class TripService(
             visibility = updated.visibility ?: existingTrip.visibility,
             createdAt = existingTrip.createdAt
         )
+
+        // Moderate Trip text fields
+        val allowed = try {
+            val textToModerate = buildString {
+                append(mergedTrip.title)
+                append(" ")
+                append(mergedTrip.description)
+            }
+            moderationServiceGrpcClient.isTextAllowed(textToModerate)
+        } catch (e: Exception) {
+            throw TripModerationException("Moderation service unavailable",e)
+        }
+        // Block Trip update if text not allowed
+        if (!allowed) {
+            throw TripModerationException(
+                "Trip content violates moderation policy!"
+            )
+        }
+
         // Kafka event - Trip UPDATE
         publishEvent(
             TripEvent(
@@ -604,6 +642,25 @@ class TripService(
         val newAlbum = dto.toAlbum().copy(
             description = marker
         )
+
+        // Moderate Trip text fields
+        val allowed = try {
+            val textToModerate = buildString {
+                append(newAlbum.title)
+                append(" ")
+                append(dto.description)
+            }
+            moderationServiceGrpcClient.isTextAllowed(textToModerate)
+        } catch (e: Exception) {
+            throw AlbumModerationException("Moderation service unavailable",e)
+        }
+        // Block Trip creation if text not allowed
+        if (!allowed) {
+            throw AlbumModerationException(
+                "Album content violates moderation policy!"
+            )
+        }
+
         trip.albums.add(newAlbum)
 
         val savedTrip = tripRepository.save(trip)

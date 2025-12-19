@@ -117,7 +117,6 @@ class AlbumController(
                 responseCode = "403",
                 description = "Forbidden - Unauthorized to update album."
             ),
-            ApiResponse(),
             ApiResponse(
                 responseCode = "404",
                 description = "Album not found.",
@@ -146,6 +145,12 @@ class AlbumController(
         } catch(_: AlbumUnauthorizedException) {
             logger.warn("User is not authorized to update album $albumId.")
             ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+        } catch (e: AlbumModerationException){
+            logger.warn("Album moderation failed: ${e.message}")
+            when (e.cause) {
+                null -> ResponseEntity.unprocessableEntity().build()
+                else -> ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build()
+            }
         } catch (_: Exception){
             logger.warn("Bad request - invalid album data.")
             ResponseEntity.badRequest().build()
