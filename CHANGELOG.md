@@ -5,9 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.0] - Unreleased
+## [1.2.0] - 2025-12-19
 ### Added
 - Add ELK stack integration
+- Add gRPC Moderation Service integration
+- Add batch Media upload
+- Add Kafka for notification and audit data
+- Add multitenancy support
 
 ## [1.1.0] - 2025-12-06
 ### Added
