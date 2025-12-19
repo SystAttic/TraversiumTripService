@@ -51,7 +51,7 @@ class AlbumService(
         eventPublisher.publishEvent(wrapped)
     }
 
-    private fun publishNotification(action: ActionType, sender: String, collaborators: List<String>, trip: Long?, album: Long?, mediaId: Long?) {
+    private fun publishNotification(action: ActionType, sender: String, collaborators: List<String>, trip: Long?, album: Long?, mediaCount: Int?) {
         val event = NotificationStreamData(
             senderId = sender,
             receiverIds = collaborators,
@@ -60,7 +60,8 @@ class AlbumService(
             collectionReferenceId = trip,
             nodeReferenceId = album,
             commentReferenceId = null,
-            mediaReferenceId = mediaId
+            mediaReferenceId = null,
+            mediaCount = mediaCount
         )
 
         eventPublisher.publishEvent(event)
@@ -336,7 +337,7 @@ class AlbumService(
                 trip.collaborators,
                 trip.tripId,
                 savedAlbum.albumId,
-                mediaIds.firstOrNull(), // Use the first ID or null
+                mediaIds.count(),
             )
         }
         return savedAlbum.toDto()
@@ -378,7 +379,7 @@ class AlbumService(
                     trip.collaborators,
                     trip.tripId,
                     album.albumId,
-                    media.mediaId
+                    1
                 )
 
                 // TODO - PHOTO->MEDIA in Auditor EntityType

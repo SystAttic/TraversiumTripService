@@ -56,7 +56,8 @@ class TripService(
             collectionReferenceId = trip,
             nodeReferenceId = album,
             commentReferenceId = null,
-            mediaReferenceId = null
+            mediaReferenceId = null,
+            mediaCount = 0
         )
 
         eventPublisher.publishEvent(event)
