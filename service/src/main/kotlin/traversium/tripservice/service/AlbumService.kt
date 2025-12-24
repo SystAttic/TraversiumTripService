@@ -154,6 +154,26 @@ class AlbumService(
 
     @Transactional
     fun updateAlbum(albumId: Long, dto: AlbumDto): AlbumDto {
+
+        // Moderate Trip text fields
+        val allowed = try {
+            val textToModerate = buildString {
+                append(dto.title)
+                append(" ")
+                append(dto.description)
+            }
+            moderationServiceGrpcClient.isTextAllowed(textToModerate)
+        } catch (e: Exception) {
+            throw AlbumModerationException("Moderation service unavailable",e)
+        }
+        // Block Trip creation if text not allowed
+        if (!allowed) {
+            throw AlbumModerationException(
+                "Album content violates moderation policy!"
+            )
+        }
+
+        //If Moderation passed, continue.
         val firebaseId = getFirebaseIdFromContext()
         val tripId = getTripIdByAlbumId(albumId)
         authorizeModify(tripId, firebaseId)
@@ -168,23 +188,7 @@ class AlbumService(
             description = dto.description ?: existingAlbum.description,
         )
 
-        // Moderate Trip text fields
-        val allowed = try {
-            val textToModerate = buildString {
-                append(updatedAlbum.title)
-                append(" ")
-                append(updatedAlbum.description)
-            }
-            moderationServiceGrpcClient.isTextAllowed(textToModerate)
-        } catch (e: Exception) {
-            throw AlbumModerationException("Moderation service unavailable",e)
-        }
-        // Block Trip creation if text not allowed
-        if (!allowed) {
-            throw AlbumModerationException(
-                "Album content violates moderation policy!"
-            )
-        }
+
 
         // Kafka event - Album UPDATE
         publishEvent(

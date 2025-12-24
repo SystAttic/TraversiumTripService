@@ -174,6 +174,25 @@ class TripService(
             throw IllegalArgumentException("Trip title cannot be null.")
         }
 
+        // Moderate Trip text fields
+        val allowed = try {
+            val textToModerate = buildString {
+                append(dto.title)
+                append(" ")
+                append(dto.description)
+            }
+            moderationServiceGrpcClient.isTextAllowed(textToModerate)
+        } catch (e: Exception) {
+            throw TripModerationException("Moderation service unavailable",e)
+        }
+        // Block Trip creation if text not allowed
+        if (!allowed) {
+            throw TripModerationException(
+                "Trip content violates moderation policy!"
+            )
+        }
+
+        //If Moderation passed, continue.
         val firebaseId = getFirebaseIdFromContext()
 
         // DEFAULT ALBUM
@@ -206,24 +225,6 @@ class TripService(
         dto.viewers.forEach { viewerId ->
             validateViewer(trip, viewerId) // if it fails, throw exception
             trip.viewers.add(viewerId)
-        }
-
-        // Moderate Trip text fields
-        val allowed = try {
-            val textToModerate = buildString {
-                append(trip.title)
-                append(" ")
-                append(trip.description)
-            }
-            moderationServiceGrpcClient.isTextAllowed(textToModerate)
-        } catch (e: Exception) {
-            throw TripModerationException("Moderation service unavailable",e)
-        }
-        // Block Trip creation if text not allowed
-        if (!allowed) {
-            throw TripModerationException(
-                "Trip content violates moderation policy!"
-            )
         }
 
         val saved = try {
@@ -292,6 +293,25 @@ class TripService(
         if(updated.tripId == null)
             throw InvalidTripDataException()
 
+        // Moderate Trip text fields
+        val allowed = try {
+            val textToModerate = buildString {
+                append(updated.title)
+                append(" ")
+                append(updated.description)
+            }
+            moderationServiceGrpcClient.isTextAllowed(textToModerate)
+        } catch (e: Exception) {
+            throw TripModerationException("Moderation service unavailable",e)
+        }
+        // Block Trip update if text not allowed
+        if (!allowed) {
+            throw TripModerationException(
+                "Trip content violates moderation policy!"
+            )
+        }
+
+        //If Moderation passed, continue.
         val existingTrip = tripRepository.findById(updated.tripId).orElseThrow { TripNotFoundException(updated.tripId) }
 
         val firebaseId = getFirebaseIdFromContext()
@@ -306,24 +326,6 @@ class TripService(
             visibility = updated.visibility ?: existingTrip.visibility,
             createdAt = existingTrip.createdAt
         )
-
-        // Moderate Trip text fields
-        val allowed = try {
-            val textToModerate = buildString {
-                append(mergedTrip.title)
-                append(" ")
-                append(mergedTrip.description)
-            }
-            moderationServiceGrpcClient.isTextAllowed(textToModerate)
-        } catch (e: Exception) {
-            throw TripModerationException("Moderation service unavailable",e)
-        }
-        // Block Trip update if text not allowed
-        if (!allowed) {
-            throw TripModerationException(
-                "Trip content violates moderation policy!"
-            )
-        }
 
         // Kafka event - Trip UPDATE
         publishEvent(
@@ -632,22 +634,11 @@ class TripService(
 
     @Transactional
     fun addAlbumToTrip(tripId: Long, dto: AlbumDto) : TripDto {
-        val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
-
-        val firebaseId = getFirebaseIdFromContext()
-        if (!trip.collaborators.contains(firebaseId))
-            throw TripUnauthorizedException("User is not authorized to perform this operation.")
-
-        val marker = UUID.randomUUID().toString()
-
-        val newAlbum = dto.toAlbum().copy(
-            description = marker
-        )
 
         // Moderate Trip text fields
         val allowed = try {
             val textToModerate = buildString {
-                append(newAlbum.title)
+                append(dto.title)
                 append(" ")
                 append(dto.description)
             }
@@ -661,6 +652,20 @@ class TripService(
                 "Album content violates moderation policy!"
             )
         }
+
+        //If Moderation passed, continue.
+        val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
+        val firebaseId = getFirebaseIdFromContext()
+        if (!trip.collaborators.contains(firebaseId))
+            throw TripUnauthorizedException("User is not authorized to perform this operation.")
+
+        val marker = UUID.randomUUID().toString()
+
+        val newAlbum = dto.toAlbum().copy(
+            description = marker
+        )
+
+
 
         trip.albums.add(newAlbum)
 

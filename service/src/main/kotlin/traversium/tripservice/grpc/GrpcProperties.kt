@@ -2,8 +2,8 @@ package traversium.tripservice.grpc
 
 import org.springframework.boot.context.properties.ConfigurationProperties
 
-@ConfigurationProperties(prefix = "grpc.client.moderation-service")
+@ConfigurationProperties(prefix = "spring.grpc.client.moderation-service")
 class GrpcProperties(
-    val host: String = "localhost",
-    val port: Int = 9090
+    val host: String,
+    val port: Int,
 )
