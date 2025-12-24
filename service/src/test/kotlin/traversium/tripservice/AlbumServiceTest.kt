@@ -90,6 +90,7 @@ class AlbumServiceTest : BaseSecuritySetup() {
     @BeforeEach
     fun setUp() {
         lenient().`when`(firebaseService.extractUidFromToken(token)).thenReturn(OWNER_ID)
+        lenient().`when`(moderationServiceGrpcClient.isTextAllowed(anyString())).thenReturn(true)
     }
 
     private fun mockAlbumToTripLink(albumId: Long = ALBUM_ID, tripId: Long = TRIP_ID) {

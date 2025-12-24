@@ -50,8 +50,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @SpringBootTest(
-    classes = [TripServiceApplication::class],
-    properties = ["grpc.server.enabled=false"]
+    classes = [TripServiceApplication::class]
 )
 @ActiveProfiles("test")
 @EmbeddedKafka(

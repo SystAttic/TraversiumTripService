@@ -85,6 +85,7 @@ class TripServiceTest : BaseSecuritySetup() {
 
     private fun setupDefaultFirebaseMocks() {
         lenient().`when`(firebaseService.extractUidFromToken(token)).thenReturn(OWNER_ID)
+        lenient().`when`(moderationServiceGrpcClient.isTextAllowed(anyString())).thenReturn(true)
     }
 
     @Test
