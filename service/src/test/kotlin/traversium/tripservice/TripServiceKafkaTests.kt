@@ -64,7 +64,8 @@ import kotlin.test.assertEquals
         "spring.kafka.reporting-topic=test-datastream",
         "spring.kafka.consumer.group-id=trip-service-tests",
         "spring.kafka.notification-topic=test-notifications",
-        "spring.kafka.audit-topic=test-audits"
+        "spring.kafka.audit-topic=test-audits",
+        "spring.cloud.config.enabled=false"
     ]
 )
 @ContextConfiguration(classes = [TripServiceKafkaTests.KafkaConsumerConfiguration::class, MockFirebaseConfig::class, TestMultitenancyConfig::class])

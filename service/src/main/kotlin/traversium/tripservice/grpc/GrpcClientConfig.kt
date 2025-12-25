@@ -3,22 +3,26 @@ package traversium.tripservice.grpc
 import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
 import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.cloud.context.config.annotation.RefreshScope
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import traversium.moderation.textmoderation.TextModerationServiceGrpc
 
+@RefreshScope
 @EnableConfigurationProperties(GrpcProperties::class)
 @Configuration
-class GrpcClientConfig {
-    @Bean
-    fun moderationChannel(grpcClientProperties: GrpcProperties): ManagedChannel =
+class GrpcClientConfig(
+    private val grpcProperties: GrpcProperties
+) {
+    @Bean (name = ["moderationGrpcChannel"])
+    fun moderationGrpcChannel(): ManagedChannel =
         ManagedChannelBuilder
-            .forAddress(grpcClientProperties.host, grpcClientProperties.port)
+            .forAddress(grpcProperties.moderation.host, grpcProperties.moderation.port)
             .usePlaintext()
             .build()
 
     @Bean
-    fun moderationStub(channel: ManagedChannel): TextModerationServiceGrpc.TextModerationServiceBlockingStub =
-        TextModerationServiceGrpc.newBlockingStub(channel)
+    fun moderationStub(moderationGrpcChannel: ManagedChannel): TextModerationServiceGrpc.TextModerationServiceBlockingStub =
+        TextModerationServiceGrpc.newBlockingStub(moderationGrpcChannel)
 
 }

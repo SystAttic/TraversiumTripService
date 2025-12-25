@@ -25,7 +25,10 @@ import kotlin.system.measureTimeMillis
 
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 @ActiveProfiles("test")
-@SpringBootTest(classes = [TripServiceApplication::class, TestMultitenancyConfig::class, MockFirebaseConfig::class])
+@SpringBootTest(
+    classes = [TripServiceApplication::class, TestMultitenancyConfig::class, MockFirebaseConfig::class],
+    properties = ["spring.cloud.config.enabled=false"]
+)
 @ExtendWith(SpringExtension::class)
 @DirtiesContext
 class TripServicePerformanceTests @Autowired constructor(
