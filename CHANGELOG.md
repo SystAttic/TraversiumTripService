@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.0] - Unreleased
 ## Added
 - Support for config server
-
+- Keycloak security for service-to-service gRPC communication
 
 ## [1.2.0] - 2025-12-19
 ### Added
