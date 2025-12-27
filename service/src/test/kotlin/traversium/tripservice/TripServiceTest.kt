@@ -26,6 +26,7 @@ import traversium.tripservice.dto.TripDto
 import traversium.tripservice.exceptions.*
 import traversium.tripservice.kafka.publisher.NotificationPublisher
 import traversium.tripservice.security.BaseSecuritySetup
+import traversium.tripservice.service.AutosorterService
 import traversium.tripservice.service.FirebaseService
 import traversium.tripservice.service.ModerationServiceGrpcClient
 import traversium.tripservice.service.TripService
@@ -51,6 +52,8 @@ class TripServiceTest : BaseSecuritySetup() {
     @Mock
     private lateinit var firebaseService: FirebaseService
 
+    @Mock
+    private lateinit var autosorterService: AutosorterService
 
     @Mock
     private lateinit var moderationServiceGrpcClient: ModerationServiceGrpcClient
