@@ -62,6 +62,17 @@ class MediaService(
         return mediaRepository.findById(mediaId).orElseThrow { MediaNotFoundException(mediaId) }.toDto()
     }
 
+    fun getMediaByPathUrl(pathUrl: String): MediaDto {
+        val firebaseId = getFirebaseIdFromContext()
+
+        val media = mediaRepository.findByPathUrl(pathUrl)
+            .orElseThrow{ MediaNotFoundException(0)}
+
+        authorizeView(media.mediaId!!, firebaseId)
+
+        return media.toDto()
+    }
+
     fun getMediaByUploader(uploaderId: String): List<MediaDto> {
         val firebaseId = getFirebaseIdFromContext()
 

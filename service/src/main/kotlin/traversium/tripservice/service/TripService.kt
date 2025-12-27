@@ -98,7 +98,6 @@ class TripService(
     private fun isUserAuthorizedToView(trip: Trip, userId: String): Boolean {
         // Check if the trip is PUBLIC, or if the user is a collaborator, or a viewer
         return tripRepository.isUserAuthorizedToView(trip.tripId!!, userId)
-
     }
 
     private fun getFirebaseIdFromContext(): String =

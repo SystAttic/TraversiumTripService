@@ -105,6 +105,49 @@ class MediaController(
         }
     }
 
+    @GetMapping("path/{pathUrl}")
+    @Operation(
+        summary = "Get media by pathUrl",
+        description = "Gets media by path URL.",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Media returned",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = MediaDto::class)
+                )]
+            ),
+            ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to view media."
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "Media not found."
+            ),
+            ApiResponse(
+                responseCode = "500",
+                description = "Internal server error"
+            )
+        ]
+    )
+    fun getMediaByPathUrl(
+        @PathVariable pathUrl: String
+    ): ResponseEntity<MediaDto> {
+        return try {
+            val media = mediaService.getMediaByPathUrl(pathUrl)
+            logger.info("Media retrieved.")
+            ResponseEntity.ok(media)
+        } catch (e: MediaUnauthorizedException) {
+            logger.warn("User unauthorized to view media.", e)
+            ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+        }catch (_: MediaNotFoundException) {
+            logger.info("No media by this path found found.")
+            ResponseEntity.notFound().build()
+        }
+    }
+
     @GetMapping("uploader/{uploaderId}")
     @Operation(
         summary = "Get media by uploader",
