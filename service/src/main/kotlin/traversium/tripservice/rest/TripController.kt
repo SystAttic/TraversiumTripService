@@ -763,4 +763,17 @@ class TripController(
         }
     }
 
+
+    @PostMapping("/autosort")
+    @Operation(
+        summary = "Autosort trip media",
+        description = "Autosort media by creation time and Geolocation",
+    )
+    fun autosortTrip(
+        @RequestBody trip: TripDto,
+    ): ResponseEntity<TripDto> {
+        val sortedTrip = tripService.autosortTrip(trip)
+        return ResponseEntity.ok(sortedTrip)
+    }
+
 }

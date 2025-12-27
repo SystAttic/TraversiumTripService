@@ -1,6 +1,7 @@
 package traversium.tripservice.db.model
 
 import jakarta.persistence.*
+import traversium.tripservice.dto.GeoLocation
 import traversium.tripservice.dto.MediaDto
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
@@ -28,24 +29,29 @@ data class Media(
     @Column(name="file_size")
     val fileSize: Long? = null,
 
-    @Column(name="geo_location")
-    val geoLocation: String? = null, // will store coordinates
+    @Embedded
+    @AttributeOverrides(
+        AttributeOverride(name = "latitude", column = Column(name = "latitude")),
+        AttributeOverride(name = "longitude", column = Column(name = "longitude"))
+    )
+    val geoLocation: GeoLocation = GeoLocation.UNKNOWN, // will store coordinates
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    var createdAt: OffsetDateTime? = null,
+    var createdAt: OffsetDateTime? = DEFAULT_DATE,
 
     @Column(name = "uploaded_at", nullable = false, updatable = false)
     var uploadedAt: OffsetDateTime? = null
 ) {
     companion object {
         const val TABLE_NAME = "media"
+        val DEFAULT_DATE: OffsetDateTime = OffsetDateTime.of(1970, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)
     }
 
     @PrePersist
     protected fun onCreate() {
-        if (createdAt == null) {
-            createdAt = OffsetDateTime.now() // Only set for new entity
-        }
+//        if (createdAt == null) {
+//            createdAt = OffsetDateTime.now() // Only set for new entity
+//        }
         if (uploadedAt == null) {
             uploadedAt = OffsetDateTime.now() // Only set for new entity
         }

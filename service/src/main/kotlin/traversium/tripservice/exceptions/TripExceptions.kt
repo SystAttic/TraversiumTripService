@@ -13,3 +13,7 @@ class TripHasViewerException(viewerId: String) : RuntimeException("Viewer with I
 
 class TripUnauthorizedException(message: String) : RuntimeException(message)
 class TripModerationException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+
+class InvalidTripException(message: String) : RuntimeException(message)
+class AutosortException(message: String, cause: Throwable? = null) :
+    RuntimeException(message, cause)

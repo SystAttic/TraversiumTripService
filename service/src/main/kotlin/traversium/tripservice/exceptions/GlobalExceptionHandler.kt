@@ -29,4 +29,19 @@ class GlobalExceptionHandler {
                     "message" to ex.message.orEmpty()
                 )
             )
+
+    @ExceptionHandler(InvalidTripException::class)
+    fun handleInvalidTrip(ex: InvalidTripException): ResponseEntity<Map<String, String>> {
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(mapOf("error" to ex.message.orEmpty()))
+    }
+
+    @ExceptionHandler(AutosortException::class)
+    fun handleAutosort(ex: AutosortException): ResponseEntity<Map<String, String>> {
+        return ResponseEntity
+            .status(HttpStatus.UNPROCESSABLE_ENTITY)
+            .body(mapOf("error" to ex.message.orEmpty()))
+    }
+
 }

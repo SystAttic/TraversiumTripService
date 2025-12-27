@@ -37,7 +37,8 @@ class TripService(
     private val albumRepository: AlbumRepository,
     private val eventPublisher: ApplicationEventPublisher,
     private val firebaseService: FirebaseService,
-    private val moderationServiceGrpcClient: ModerationServiceGrpcClient
+    private val moderationServiceGrpcClient: ModerationServiceGrpcClient,
+    private val autosorterService: AutosorterService
 ) {
     private fun <T : DomainEvent> publishEvent(event: T) {
         val wrapped = ReportingStreamData(
@@ -794,6 +795,27 @@ class TripService(
         val trips = tripRepository.searchTripsByTitle(query, firebaseId, pageable)
 
         return trips.map { it.toDto() }
+    }
+
+    fun autosortTrip(trip: TripDto): TripDto {
+
+        validateTrip(trip)
+
+        try {
+            return autosorterService.autoSort(trip)
+        } catch (ex: Exception) {
+            throw AutosortException("Failed to autosort trip ${trip.tripId}", ex)
+        }
+    }
+
+    private fun validateTrip(trip: TripDto) {
+        if (trip.albums.isEmpty()) {
+            throw InvalidTripException("Trip must contain at least one album")
+        }
+
+        if (trip.albums.any { it.media.isEmpty() }) {
+            throw InvalidTripException("Albums must not be empty")
+        }
     }
 
 }
