@@ -1,20 +1,16 @@
--- Add the new columns
-ALTER TABLE media ADD COLUMN latitude DOUBLE PRECISION;
-ALTER TABLE media ADD COLUMN longitude DOUBLE PRECISION;
+-- Add columns (if not already existing)
+ALTER TABLE media ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
+ALTER TABLE media ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
 
--- Migrate existing data (H2 + Postgres compatible)
+-- Migration logic
 UPDATE media
 SET
-    latitude = CAST(
-            TRIM(SUBSTRING(geo_location FROM 1 FOR POSITION(',' IN geo_location) - 1))
-        AS DOUBLE PRECISION
-               ),
-    longitude = CAST(
-            TRIM(SUBSTRING(geo_location FROM POSITION(',' IN geo_location) + 1))
-        AS DOUBLE PRECISION
-                )
+    latitude = CAST(TRIM(SUBSTRING(geo_location FROM 1 FOR POSITION(',' IN geo_location) - 1)) AS DOUBLE PRECISION),
+    longitude = CAST(TRIM(SUBSTRING(geo_location FROM POSITION(',' IN geo_location) + 1)) AS DOUBLE PRECISION)
 WHERE geo_location IS NOT NULL
-  AND geo_location LIKE '%,%';
+  AND geo_location LIKE '%,%'
+  AND latitude IS NULL
+  AND longitude IS NULL;
 
--- Remove the old column
-ALTER TABLE media DROP COLUMN geo_location;
+-- Drop column (if it exists)
+ALTER TABLE media DROP COLUMN IF EXISTS geo_location;
