@@ -5,10 +5,9 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import traversium.tripservice.dto.MediaDto
-import traversium.tripservice.exceptions.MediaNotFoundException
 import traversium.tripservice.db.repository.MediaRepository
 import traversium.tripservice.db.repository.TripRepository
-import traversium.tripservice.exceptions.MediaUnauthorizedException
+import traversium.tripservice.exceptions.*
 
 @Service
 @Transactional
@@ -22,12 +21,12 @@ class MediaService(
 
     private fun authorizeView(mediaId: Long, firebaseId: String) {
         val tripId = tripRepository.findTripIdByMediaId(mediaId)
-            .orElseThrow { MediaNotFoundException(mediaId) } // If media has no trip, treat it as not found or invalid.
+            .orElseThrow { NotFoundException("Media $mediaId not found.") } // If media has no trip, treat it as not found or invalid.
 
         val isAuthorized = tripRepository.isUserAuthorizedToView(tripId, firebaseId)
 
         if (!isAuthorized) {
-            throw MediaUnauthorizedException("User $firebaseId is not authorized to view media $mediaId.")
+            throw UnauthorizedException("User $firebaseId is not authorized to view media $mediaId.")
         }
     }
 
@@ -37,7 +36,7 @@ class MediaService(
         val media = mediaRepository.findAllAccessibleMediaByUserId(firebaseId)
 
         if (media.isEmpty()) {
-            throw MediaNotFoundException(0) // 0 implies general 'no accessible media'
+            throw NotFoundException("No media found.") // 0 implies general 'no accessible media'
         }
         return media.map { it.toDto() }
     }
@@ -49,7 +48,7 @@ class MediaService(
         val media = mediaRepository.findAllAccessibleMediaByUserId(firebaseId, pageable)
 
         if (media.isEmpty()) {
-            throw MediaNotFoundException(0) // 0 implies general 'no accessible media'
+            throw NotFoundException("No media found.") // 0 implies general 'no accessible media'
         }
         return media.map { it.toDto() }
     }
@@ -59,14 +58,14 @@ class MediaService(
 
         authorizeView(mediaId, firebaseId)
 
-        return mediaRepository.findById(mediaId).orElseThrow { MediaNotFoundException(mediaId) }.toDto()
+        return mediaRepository.findById(mediaId).orElseThrow { NotFoundException("Media $mediaId not found.") }.toDto()
     }
 
     fun getMediaByPathUrl(pathUrl: String): MediaDto {
         val firebaseId = getFirebaseIdFromContext()
 
         val media = mediaRepository.findByPathUrl(pathUrl)
-            .orElseThrow{ MediaNotFoundException(0)}
+            .orElseThrow{ NotFoundException("Media with path url $pathUrl not found.") }
 
         authorizeView(media.mediaId!!, firebaseId)
 
@@ -79,7 +78,7 @@ class MediaService(
         val media = mediaRepository.findAccessibleMediaByUploader(uploaderId, firebaseId)
 
         if (media.isEmpty()) {
-            throw MediaNotFoundException(0)
+            throw NotFoundException("No media found.")
         }
         return media.map { it.toDto() }
     }
@@ -91,7 +90,7 @@ class MediaService(
         val media = mediaRepository.findAccessibleMediaByUploader(uploaderId, firebaseId, pageable)
 
         if (media.isEmpty()) {
-            throw MediaNotFoundException(0)
+            throw NotFoundException("No media found.")
         }
         return media.map { it.toDto() }
     }

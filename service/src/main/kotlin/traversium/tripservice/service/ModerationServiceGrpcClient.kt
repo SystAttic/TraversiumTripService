@@ -6,7 +6,7 @@ import org.apache.logging.log4j.kotlin.logger
 import org.springframework.stereotype.Service
 import traversium.moderation.textmoderation.ModerateTextRequest
 import traversium.moderation.textmoderation.TextModerationServiceGrpc
-import traversium.tripservice.exceptions.TripModerationException
+import traversium.tripservice.exceptions.*
 import java.util.concurrent.TimeUnit
 
 @Service
@@ -37,6 +37,6 @@ class ModerationServiceGrpcClient(
     @Suppress("unused")
     fun fallback(text: String, ex: Throwable): Boolean {
         logger.error("Moderation fallback triggered", ex)
-        throw TripModerationException("Moderation unavailable", ex)
+        throw ModerationException("Moderation unavailable", ex)
     }
 }

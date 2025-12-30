@@ -45,7 +45,7 @@ class AutosorterService {
 
         for (media in processingPool) {
             val hasTime = media.createdAt != null && media.createdAt != Media.DEFAULT_DATE
-            val hasGeo = media.geoLocation != null && !media.geoLocation.isUnknown
+            val hasGeo = media.geoLocation != null && !media.geoLocation.hasUnknownCoordinates()
 
             if (!hasTime && !hasGeo) {
                 defaultAlbum?.media?.add(media)
@@ -120,7 +120,7 @@ class AutosorterService {
         val medianTime = validMedia.mapNotNull { it.createdAt }.sorted()
             .let { if (it.isNotEmpty()) it[it.size / 2] else null }
 
-        val locations = album.media.mapNotNull { it.geoLocation }.filterNot { it.isUnknown }
+        val locations = album.media.mapNotNull { it.geoLocation }.filterNot { it.hasUnknownCoordinates() }
         val centroid = locations.takeIf { it.isNotEmpty() }?.let { locs ->
             GeoLocation(
                 latitude = locs.map { it.latitude }.average(),
@@ -154,7 +154,7 @@ class AutosorterService {
 
     fun computeMatchScore(media: MediaDto, signature: AlbumSignature): Int {
         val mediaTime = media.createdAt?.takeIf { it != Media.DEFAULT_DATE }
-        val mediaLoc = media.geoLocation?.takeIf { !it.isUnknown }
+        val mediaLoc = media.geoLocation?.takeIf { !it.hasUnknownCoordinates() }
 
         val hasTimeMatch = mediaTime != null && signature.medianTime != null
         val hasLocMatch = mediaLoc != null && signature.centroidLocation != null
@@ -193,7 +193,7 @@ class AutosorterService {
 
     fun createAlbumFor(media: MediaDto): MutableAlbum {
         val title = buildString {
-            if (media.geoLocation != null && !media.geoLocation.isUnknown)
+            if (media.geoLocation != null && !media.geoLocation.hasUnknownCoordinates())
                 append("Location (${media.geoLocation.latitude}, ${media.geoLocation.longitude}) ")
             if (media.createdAt != null && media.createdAt != Media.DEFAULT_DATE)
                 append(media.createdAt.toLocalDate())

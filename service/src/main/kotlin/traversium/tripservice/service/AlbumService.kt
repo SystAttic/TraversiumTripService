@@ -14,16 +14,10 @@ import traversium.notification.kafka.NotificationStreamData
 import traversium.tripservice.db.model.Media
 import traversium.tripservice.db.model.Visibility
 import traversium.tripservice.dto.AlbumDto
-import traversium.tripservice.exceptions.AlbumNotFoundException
 import traversium.tripservice.db.repository.AlbumRepository
 import traversium.tripservice.db.repository.TripRepository
 import traversium.tripservice.dto.MediaDto
-import traversium.tripservice.exceptions.AlbumModerationException
-import traversium.tripservice.exceptions.AlbumUnauthorizedException
-import traversium.tripservice.exceptions.AlbumWithoutMediaException
-import traversium.tripservice.exceptions.DatabaseException
-import traversium.tripservice.exceptions.MediaNotFoundException
-import traversium.tripservice.exceptions.TripNotFoundException
+import traversium.tripservice.exceptions.*
 import traversium.tripservice.kafka.data.AlbumEvent
 import traversium.tripservice.kafka.data.AlbumEventType
 import traversium.tripservice.kafka.data.DomainEvent
@@ -92,11 +86,11 @@ class AlbumService(
 
     private fun getTripIdByAlbumId(albumId: Long): Long {
         return tripRepository.findTripIdByAlbumId(albumId)
-            .orElseThrow { AlbumNotFoundException(albumId) } // Assuming 0 for generic lookup failure
+            .orElseThrow { NotFoundException("Trip with album $albumId not found.") }
     }
 
     private fun authorizeView(tripId: Long, firebaseId: String) {
-        val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
+        val trip = tripRepository.findById(tripId).orElseThrow { NotFoundException("Trip $tripId not found.") }
 
         // Use the same authorization logic as TripService's isUserAuthorizedToView
         val isAuthorized = trip.visibility == Visibility.PUBLIC ||
@@ -105,17 +99,17 @@ class AlbumService(
                 trip.ownerId == firebaseId
 
         if (!isAuthorized) {
-            throw AlbumUnauthorizedException("User is not authorized to view album.")
+            throw UnauthorizedException("User is not authorized to view this album.")
         }
     }
 
     private fun authorizeModify(tripId: Long, firebaseId: String) {
-        val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
+        val trip = tripRepository.findById(tripId).orElseThrow { NotFoundException("Trip $tripId not found.") }
 
         val isAuthorized = trip.collaborators.contains(firebaseId) || trip.ownerId == firebaseId
 
         if (!isAuthorized) {
-            throw AlbumUnauthorizedException("User is not authorized to modify album.")
+            throw UnauthorizedException("User is not authorized to modify this album.")
         }
     }
 
@@ -126,7 +120,7 @@ class AlbumService(
         val albums = albumRepository.findAllAccessibleAlbumsByUserId(firebaseId)
 
         if(albums.isEmpty())
-            throw AlbumNotFoundException(0)
+            throw NotFoundException("No albums found.")
 
         return albums.map { it.toDto() }
     }
@@ -137,7 +131,7 @@ class AlbumService(
         val albums = albumRepository.findAllAccessibleAlbumsByUserId(firebaseId, pageable)
 
         if(albums.isEmpty())
-            throw AlbumNotFoundException(0)
+            throw NotFoundException("No albums found.")
 
         return albums.map { it.toDto() }
     }
@@ -148,7 +142,7 @@ class AlbumService(
         authorizeView(tripId, firebaseId)
 
         return albumRepository.findById(albumId)
-            .orElseThrow { AlbumNotFoundException(albumId) }
+            .orElseThrow { NotFoundException("Album $albumId not found.") }
             .toDto()
     }
 
@@ -164,13 +158,11 @@ class AlbumService(
             }
             moderationServiceGrpcClient.isTextAllowed(textToModerate)
         } catch (e: Exception) {
-            throw AlbumModerationException("Moderation service unavailable",e)
+            throw ModerationException("Moderation service unavailable",e)
         }
         // Block Trip creation if text not allowed
         if (!allowed) {
-            throw AlbumModerationException(
-                "Album content violates moderation policy!"
-            )
+            throw ModerationException("Album content violates moderation policy!")
         }
 
         //If Moderation passed, continue.
@@ -181,14 +173,12 @@ class AlbumService(
         val trip = tripService.getByTripId(tripId)
 
         val existingAlbum = albumRepository.findById(albumId)
-            .orElseThrow { AlbumNotFoundException(albumId) }
+            .orElseThrow { NotFoundException("Album $albumId not found.") }
 
         val updatedAlbum = existingAlbum.copy(
             title = dto.title ?: existingAlbum.title,
             description = dto.description ?: existingAlbum.description,
         )
-
-
 
         // Kafka event - Album UPDATE
         publishEvent(
@@ -234,7 +224,11 @@ class AlbumService(
         // Audit - Album INFO CHANGE
         publishAuditEvent(firebaseId, TripActivityAction.ALBUM_INFO_CHANGED.name, EntityType.ALBUM, existingAlbum.albumId!!,trip.tripId!!)
 
-        return albumRepository.save(updatedAlbum).toDto()
+        return try {
+            albumRepository.save(updatedAlbum).toDto()
+        } catch (e: Exception) {
+            throw DatabaseException("Error updating album $albumId.")
+        }
     }
 
     fun getMediaFromAlbum(albumId: Long, mediaId: Long): MediaDto {
@@ -242,15 +236,15 @@ class AlbumService(
         val tripId = getTripIdByAlbumId(albumId)
         authorizeView(tripId, firebaseId)
 
-        val album = albumRepository.findById(albumId).orElseThrow { AlbumNotFoundException(albumId) }
+        val album = albumRepository.findById(albumId).orElseThrow { NotFoundException("Album $albumId not found.") }
 
         if(album.media.isEmpty())
-            throw AlbumWithoutMediaException(albumId)
+            throw NotFoundException("No media in album $albumId.")
         else {
             return try {
                 album.media.first { it.mediaId == mediaId }.toDto()
             } catch (_: NoSuchElementException) {
-                throw MediaNotFoundException(mediaId)
+                throw NotFoundException("No media $mediaId in album $albumId.")
             }
         }
     }
@@ -266,9 +260,9 @@ class AlbumService(
         val tripId = getTripIdByAlbumId(albumId)
         authorizeModify(tripId, firebaseId)
 
-        val album = albumRepository.findById(albumId).orElseThrow{ AlbumNotFoundException(albumId) }
+        val album = albumRepository.findById(albumId).orElseThrow{ NotFoundException("Album $albumId not found.") }
         val trip = tripRepository.findById(tripId).orElseThrow {
-            TripNotFoundException(tripId)
+            NotFoundException("Trip $tripId not found.")
         }
 
         val successfulMedia = mutableListOf<Media>()
@@ -294,7 +288,7 @@ class AlbumService(
         try {
             album.media.addAll(mediaToSave)
         } catch (e: Exception) {
-            throw IllegalArgumentException("Failed to save media to album: ${e.message}")
+            throw DatabaseException("Failed to save media to album: ${e.message}")
         }
 
         // Save the album
@@ -353,52 +347,53 @@ class AlbumService(
         val tripId = getTripIdByAlbumId(albumId)
         authorizeModify(tripId, firebaseId)
 
-        val album = albumRepository.findById(albumId).orElseThrow { AlbumNotFoundException(albumId) }
-        val trip = tripRepository.findById(tripId).orElseThrow {
-            TripNotFoundException(tripId)
-        }
+        val album = albumRepository.findById(albumId).orElseThrow { NotFoundException("Album $albumId not found.") }
+        val trip = tripRepository.findById(tripId).orElseThrow { NotFoundException("Trip $tripId not found.") }
 
         if(album.media.any { it.mediaId == mediaId }) {
             val media = album.media.find { it.mediaId == mediaId }
             if (media == null) {
-                throw MediaNotFoundException(mediaId)
+                throw NotFoundException("Media $mediaId not found in album $albumId.")
             }
 
+            // Delete media
             try {
                 album.media.remove(media)
-
-                // Kafka event - Media DELETE
-                publishEvent(
-                    MediaEvent(
-                        eventType = MediaEventType.MEDIA_DELETED,
-                        mediaId = media.mediaId,
-                        pathUrl = media.pathUrl,
-                    )
-                )
-
-                // Notification - Media DELETE
-                publishNotification(
-                    ActionType.DELETE,
-                    firebaseId,
-                    trip.collaborators,
-                    trip.tripId,
-                    album.albumId,
-                    1
-                )
-
-                // TODO - PHOTO->MEDIA in Auditor EntityType
-                // Audit - Media DELETED
-                publishAuditEvent(firebaseId, TripActivityAction.MEDIA_DELETED.name, EntityType.PHOTO, media.mediaId!!,trip.tripId!!)
-
             } catch (_: Exception) {
-                throw MediaNotFoundException(mediaId)
+                throw DatabaseException("Media $mediaId could not be removed.")
             }
+
+            // Save updated album
             try {
                 albumRepository.save(album).toDto()
-            } catch (_: IllegalArgumentException) {
-                throw IllegalArgumentException()
+            } catch (_: Exception) {
+                throw DatabaseException("Failed to delete media from album $albumId.")
             }
+
+            // Kafka event - Media DELETE
+            publishEvent(
+                MediaEvent(
+                    eventType = MediaEventType.MEDIA_DELETED,
+                    mediaId = media.mediaId,
+                    pathUrl = media.pathUrl,
+                )
+            )
+
+            // Notification - Media DELETE
+            publishNotification(
+                ActionType.DELETE,
+                firebaseId,
+                trip.collaborators,
+                trip.tripId,
+                album.albumId,
+                1
+            )
+
+            // TODO - PHOTO->MEDIA in Auditor EntityType
+            // Audit - Media DELETED
+            publishAuditEvent(firebaseId, TripActivityAction.MEDIA_DELETED.name, EntityType.PHOTO, media.mediaId!!,trip.tripId!!)
+
         } else
-            throw MediaNotFoundException(mediaId)
+            throw NotFoundException("Media $mediaId not found.")
     }
 }

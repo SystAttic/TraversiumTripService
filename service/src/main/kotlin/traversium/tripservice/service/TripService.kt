@@ -1,5 +1,6 @@
 package traversium.tripservice.service
 
+import org.hibernate.dialect.Database
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest
 import org.springframework.security.core.context.SecurityContextHolder
@@ -11,10 +12,8 @@ import traversium.tripservice.db.model.Trip
 import traversium.tripservice.db.model.Album
 import traversium.tripservice.db.repository.AlbumRepository
 import traversium.tripservice.dto.TripDto
-import traversium.tripservice.exceptions.TripNotFoundException
 import traversium.tripservice.db.repository.TripRepository
 import traversium.tripservice.dto.AlbumDto
-import traversium.tripservice.exceptions.AlbumNotFoundException
 import traversium.tripservice.exceptions.*
 import traversium.tripservice.kafka.data.AlbumEvent
 import traversium.tripservice.kafka.data.AlbumEventType
@@ -86,13 +85,13 @@ class TripService(
 
     private fun validateCollaborator(trip: Trip, collaboratorId: String) {
         if (trip.collaborators.contains(collaboratorId)) {
-            throw TripHasCollaboratorException(collaboratorId)
+            throw ConflictException("Collaborator $collaboratorId already exists in ${trip.tripId}.")
         }
     }
 
     private fun validateViewer(trip: Trip, viewerId: String) {
         if (trip.viewers.contains(viewerId)) {
-            throw TripHasViewerException(viewerId)
+            throw ConflictException("Viewer $viewerId already exists in ${trip.tripId}.")
         }
     }
 
@@ -111,7 +110,9 @@ class TripService(
     // where user is owner, viewer or collaborator
     fun getAllTrips(): List<TripDto> {
         val firebaseId = getFirebaseIdFromContext()
-        val trips = tripRepository.findAllAccessibleTripsByUserId(firebaseId) // get all trips, where the user is owner, collaborator or viewer
+
+        // get all trips, where the user is owner, collaborator or viewer
+        val trips = tripRepository.findAllAccessibleTripsByUserId(firebaseId)
         if(trips.isEmpty())
             return emptyList()
 
@@ -130,12 +131,12 @@ class TripService(
     }
 
     fun getByTripId(tripId: Long): TripDto {
-        val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
+        val trip = tripRepository.findById(tripId).orElseThrow { NotFoundException("Trip $tripId not found.") }
 
         val firebaseId = getFirebaseIdFromContext()
 
         if (!isUserAuthorizedToView(trip, firebaseId)) {
-            throw TripUnauthorizedException("User is not authorized to view trip ID $tripId.")
+            throw UnauthorizedException("User is not authorized to access trip $tripId.")
         }
 
         return trip.toDto()
@@ -168,10 +169,10 @@ class TripService(
 
     @Transactional
     fun createTrip(dto: TripDto): TripDto {
-        if (
-            //dto.ownerId == null ||
-            dto.title == null || dto.tripId != null) {
-            throw IllegalArgumentException("Trip title cannot be null.")
+        if (dto.tripId != null)
+            throw InvalidDataException("Trip ID cannot be manually set.")
+        else if (dto.title == null) {
+            throw InvalidDataException("Trip title cannot be empty.")
         }
 
         // Moderate Trip text fields
@@ -183,13 +184,11 @@ class TripService(
             }
             moderationServiceGrpcClient.isTextAllowed(textToModerate)
         } catch (e: Exception) {
-            throw TripModerationException("Moderation service unavailable",e)
+            throw ModerationException("Moderation service unavailable", e)
         }
         // Block Trip creation if text not allowed
         if (!allowed) {
-            throw TripModerationException(
-                "Trip content violates moderation policy!"
-            )
+            throw ModerationException("Trip content violates moderation policy!")
         }
 
         //If Moderation passed, continue.
@@ -200,12 +199,7 @@ class TripService(
             title = "Default moment",
             description = ""
         )
-
-        try {
-            albumRepository.save(defaultAlbum)
-        } catch (_: Exception) {
-            throw IllegalArgumentException()
-        }
+        albumRepository.save(defaultAlbum)
 
         val trip = dto.toTrip().copy(
             ownerId = firebaseId,
@@ -229,8 +223,8 @@ class TripService(
 
         val saved = try {
             tripRepository.save(trip)
-        } catch (_: Exception) {
-            throw IllegalArgumentException()
+        } catch (e: Exception) {
+            throw DatabaseException("Error creating trip.")
         }
 
         // Kafka event - Trip CREATE
@@ -258,12 +252,12 @@ class TripService(
 
     @Transactional
     fun deleteTrip(tripId: Long) {
-        val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
+        val trip = tripRepository.findById(tripId).orElseThrow { NotFoundException("Trip $tripId not found.") }
 
         val firebaseId = getFirebaseIdFromContext()
 
         if (firebaseId != trip.ownerId)
-            throw TripUnauthorizedException("User is not authorized to perform this operation.")
+            throw UnauthorizedException("User is not authorized to delete trip $tripId.")
 
         // Kafka event - Trip DELETE
         publishEvent(
@@ -285,13 +279,17 @@ class TripService(
         // Audit - Trip DELETE
         publishAuditEvent(firebaseId, TripActivityAction.TRIP_DELETED.name, EntityType.TRIP, trip.tripId!!,trip.tripId!!)
 
-        tripRepository.delete(trip)
+        try {
+            tripRepository.delete(trip)
+        } catch (e: Exception) {
+            throw DatabaseException("Error deleting trip.")
+        }
     }
 
     @Transactional
     fun updateTrip(updated: TripDto): TripDto {
         if(updated.tripId == null)
-            throw InvalidTripDataException()
+            throw InvalidDataException("Trip ID cannot be null.")
 
         // Moderate Trip text fields
         val allowed = try {
@@ -302,22 +300,20 @@ class TripService(
             }
             moderationServiceGrpcClient.isTextAllowed(textToModerate)
         } catch (e: Exception) {
-            throw TripModerationException("Moderation service unavailable",e)
+            throw ModerationException("Moderation service unavailable", e)
         }
         // Block Trip update if text not allowed
         if (!allowed) {
-            throw TripModerationException(
-                "Trip content violates moderation policy!"
-            )
+            throw ModerationException("Trip content violates moderation policy!")
         }
 
         //If Moderation passed, continue.
-        val existingTrip = tripRepository.findById(updated.tripId).orElseThrow { TripNotFoundException(updated.tripId) }
+        val existingTrip = tripRepository.findById(updated.tripId).orElseThrow { NotFoundException("Trip ${updated.tripId} not found.") }
 
         val firebaseId = getFirebaseIdFromContext()
 
         if (firebaseId != existingTrip.ownerId)
-            throw TripUnauthorizedException("User is not authorized to perform this operation.")
+            throw UnauthorizedException("User is not authorized to delete trip ${existingTrip.tripId}.")
 
         val mergedTrip = existingTrip.copy(
             title = updated.title ?: existingTrip.title,
@@ -399,7 +395,11 @@ class TripService(
         // Audit - Trip INFO CHANGE
         publishAuditEvent(firebaseId, TripActivityAction.TRIP_INFO_CHANGED.name, EntityType.TRIP, mergedTrip.tripId!!,mergedTrip.tripId!!)
 
-        return tripRepository.save(mergedTrip).toDto()
+        return try {
+            tripRepository.save(mergedTrip).toDto()
+        }catch (e: Exception){
+            throw DatabaseException("Error updating trip ${updated.tripId}.")
+        }
     }
 
     /*
@@ -413,7 +413,7 @@ class TripService(
             tripRepository.findByCollaboratorId(collaboratorId, firebaseId).map { it.toDto() }
 
         if (trips.isEmpty())
-            throw TripNotFoundException(0)
+            throw NotFoundException("No trips found for collaborator ${firebaseId}.")
         else
             return trips
     }
@@ -427,7 +427,7 @@ class TripService(
             tripRepository.findByCollaboratorId(collaboratorId, firebaseId, pageable).map { it.toDto() }
 
         if (trips.isEmpty())
-            throw TripNotFoundException(0)
+            throw NotFoundException("No trips found for collaborator ${firebaseId}.")
         else
             return trips
     }
@@ -435,18 +435,22 @@ class TripService(
     @Transactional
     fun addCollaboratorToTrip(tripId: Long, collaboratorId: String): TripDto {
         val trip = tripRepository.findById(tripId)
-            .orElseThrow { TripNotFoundException(tripId) }
+            .orElseThrow { NotFoundException("Trip $tripId not found.") }
 
         val firebaseId = getFirebaseIdFromContext()
 
         if (firebaseId != trip.ownerId)
-            throw TripUnauthorizedException("User is not authorized to perform this operation.")
+            throw UnauthorizedException("User is not authorized to add collaborators to this trip.")
 
         validateCollaborator(trip, collaboratorId)
 
         trip.collaborators.add(collaboratorId)
 
-        val saved = tripRepository.save(trip)
+        val saved = try {
+            tripRepository.save(trip)
+        } catch (e: Exception) {
+            throw DatabaseException("Error adding collaborator $collaboratorId to $tripId.")
+        }
 
         // Kafka event - Collaborator ADD
         publishEvent(
@@ -473,15 +477,15 @@ class TripService(
     }
 
     @Transactional
-    fun deleteCollaboratorFromTrip(tripId: Long, collaboratorId: String) {
-        val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
+    fun removeCollaboratorFromTrip(tripId: Long, collaboratorId: String) {
+        val trip = tripRepository.findById(tripId).orElseThrow { NotFoundException("Trip $tripId not found.") }
 
         val firebaseId = getFirebaseIdFromContext()
 
         if (firebaseId != trip.ownerId)
-            throw TripUnauthorizedException("User is not authorized to perform this operation.")
+            throw UnauthorizedException("User is not authorized to remove collaborators from this trip.")
         if (collaboratorId == trip.ownerId)
-            throw TripUnauthorizedException("Owner cannot be deleted.")
+            throw UnauthorizedException("Trip owner cannot be removed from this trip.")
 
 
         if (trip.collaborators.contains(collaboratorId)) {
@@ -508,8 +512,12 @@ class TripService(
             // Audit - Trip COLLABORATOR REMOVED
             publishAuditEvent(firebaseId, TripActivityAction.TRIP_COLLABORATOR_REMOVED.name, EntityType.TRIP, trip.tripId!!,trip.tripId!!)
 
-            tripRepository.save(trip)
-        } else throw TripWithoutCollaboratorException(tripId,collaboratorId)
+            try {
+                tripRepository.save(trip)
+            } catch (e: Exception) {
+                throw DatabaseException("Error removing collaborator ${collaboratorId} from $tripId.")
+            }
+        } else throw NotFoundException("Collaborator $collaboratorId does not exist in this trip.")
     }
 
     /*
@@ -520,7 +528,7 @@ class TripService(
         val firebaseId = getFirebaseIdFromContext()
         val trips = tripRepository.findByViewerId(firebaseId)
         if (trips.isEmpty())
-            throw TripNotFoundException(0)
+            throw NotFoundException("No trips found for viewer $firebaseId.")
 
         return trips.map { it.toDto() }
     }
@@ -531,7 +539,7 @@ class TripService(
         val pageable = PageRequest.of(offset / limit, limit)
         val trips = tripRepository.findByViewerId(firebaseId, pageable)
         if (trips.isEmpty())
-            throw TripNotFoundException(0)
+            throw NotFoundException("No trips found for viewer $firebaseId.")
 
         return trips.map { it.toDto() }
     }
@@ -539,17 +547,22 @@ class TripService(
     @Transactional
     fun addViewerToTrip(tripId: Long, viewerId: String) :TripDto {
         val trip = tripRepository.findById(tripId)
-            .orElseThrow { TripNotFoundException(tripId) }
+            .orElseThrow { NotFoundException("Trip $tripId not found.") }
 
         val firebaseId = getFirebaseIdFromContext()
         if (firebaseId != trip.ownerId)
-            throw TripUnauthorizedException("User is not authorized to perform this operation.")
+            throw UnauthorizedException("User is not authorized to add add viewers to this trip..")
 
         validateViewer(trip, viewerId)
 
         trip.viewers.add(viewerId)
 
-        val saved = tripRepository.save(trip)
+        val saved =
+            try {
+                tripRepository.save(trip)
+            } catch (e: Exception) {
+                throw DatabaseException("Error adding viewer $viewerId to $tripId.")
+            }
 
         // Kafka event - Viewer ADD
         publishEvent(
@@ -577,13 +590,13 @@ class TripService(
     }
 
     @Transactional
-    fun deleteViewerFromTrip(tripId: Long, viewerId: String) {
+    fun removeViewerFromTrip(tripId: Long, viewerId: String) {
         val trip = tripRepository.findById(tripId)
-        .orElseThrow { TripNotFoundException(tripId) }
+        .orElseThrow { NotFoundException("Trip $tripId not found.") }
 
         val firebaseId = getFirebaseIdFromContext()
         if (firebaseId != trip.ownerId)
-            throw TripUnauthorizedException("User is not authorized to perform this operation.")
+            throw UnauthorizedException("User is not authorized to remove viewers from this trip.")
 
 
         if (trip.viewers.contains(viewerId)) {
@@ -610,8 +623,13 @@ class TripService(
             // Audit - Trip VIEWER REMOVED
             publishAuditEvent(firebaseId, TripActivityAction.TRIP_VIEWER_REMOVED.name, EntityType.TRIP, trip.tripId!!, trip.tripId!!)
 
-            tripRepository.save(trip)
-        } else throw TripWithoutViewerException(tripId,viewerId)
+            try {
+                tripRepository.save(trip)
+            } catch (e: Exception) {
+                throw DatabaseException("Error removing viewer $viewerId from $tripId.")
+            }
+
+        } else throw NotFoundException("Viewer $viewerId does not exist in this trip.")
     }
 
 
@@ -619,15 +637,15 @@ class TripService(
     *   <-- Albums -->
     */
     fun getAlbumFromTrip(tripId: Long, albumId: Long): AlbumDto {
-        val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
+        val trip = tripRepository.findById(tripId).orElseThrow { NotFoundException("Trip $tripId not found.") }
 
         val firebaseId = getFirebaseIdFromContext()
         if (!isUserAuthorizedToView(trip, firebaseId)) {
-            throw TripUnauthorizedException("User is not authorized to view trip ID $tripId.")
+            throw UnauthorizedException("User is not authorized to view trip $tripId.")
         }
 
         if(trip.albums.isEmpty())
-            throw TripWithoutAlbumsException(tripId)
+            throw NotFoundException("No albums found in trip $tripId.")
         else
             return trip.albums.first { it.albumId == albumId }.toDto()
     }
@@ -644,32 +662,35 @@ class TripService(
             }
             moderationServiceGrpcClient.isTextAllowed(textToModerate)
         } catch (e: Exception) {
-            throw AlbumModerationException("Moderation service unavailable",e)
+            throw ModerationException("Moderation service unavailable.", e)
         }
         // Block Trip creation if text not allowed
         if (!allowed) {
-            throw AlbumModerationException(
-                "Album content violates moderation policy!"
-            )
+            throw ModerationException("Album content violates moderation policy!")
         }
 
         //If Moderation passed, continue.
-        val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
+        val trip = tripRepository.findById(tripId).orElseThrow { NotFoundException("Trip $tripId not found.") }
         val firebaseId = getFirebaseIdFromContext()
         if (!trip.collaborators.contains(firebaseId))
-            throw TripUnauthorizedException("User is not authorized to perform this operation.")
+            throw UnauthorizedException("User is not authorized to add albums to this trip.")
 
         val marker = UUID.randomUUID().toString()
 
         val newAlbum = dto.toAlbum().copy(
-            description = marker
+            description = marker,
+            media = mutableListOf()
         )
-
-
 
         trip.albums.add(newAlbum)
 
-        val savedTrip = tripRepository.save(trip)
+        val savedTrip =
+            try {
+                tripRepository.save(trip)
+            } catch (e: Exception) {
+                throw DatabaseException("Error adding album to trip $tripId.")
+            }
+
         val albumWithId = savedTrip.albums.find { it.description == marker }
 
         requireNotNull(albumWithId) {"Failed to find the newly added album by unique marker."}
@@ -705,15 +726,15 @@ class TripService(
 
     @Transactional
     fun deleteAlbumFromTrip(tripId: Long, albumId: Long) {
-        val trip = tripRepository.findById(tripId).orElseThrow { TripNotFoundException(tripId) }
+        val trip = tripRepository.findById(tripId).orElseThrow { NotFoundException("Trip $tripId not found.") }
 
         val firebaseId = getFirebaseIdFromContext()
         if (!trip.collaborators.contains(firebaseId)) {
-            throw TripUnauthorizedException("User is not authorized to perform this operation.")
+            throw UnauthorizedException("User is not authorized to delete albums from this trip.")
         }
 
         if (trip.defaultAlbum == albumId)
-            throw AlbumUnauthorizedException("Cannot delete Default album.")
+            throw UnauthorizedException("Cannot delete the Default album.")
 
         if(trip.albums.any { it.albumId == albumId }) {
             val album = trip.albums.find { it.albumId == albumId }
@@ -743,7 +764,7 @@ class TripService(
 
             tripRepository.save(trip)
         }else
-            throw AlbumNotFoundException(albumId)
+            throw NotFoundException("Album $albumId does not exist in trip $tripId.")
 
     }
 
@@ -773,11 +794,11 @@ class TripService(
 
     fun getAllMediaFromTrip(tripId: Long): List<String> {
         val trip = tripRepository.findById(tripId)
-            .orElseThrow { TripNotFoundException(tripId) }
+            .orElseThrow { NotFoundException("Trip $tripId not found.") }
 
         val firebaseId = getFirebaseIdFromContext()
         if (!isUserAuthorizedToView(trip, firebaseId)) {
-            throw TripUnauthorizedException("User is not authorized to view trip ID $tripId.")
+            throw UnauthorizedException("User is not authorized to view media from this trip.")
         }
 
         return trip.albums
@@ -804,17 +825,17 @@ class TripService(
         try {
             return autosorterService.autoSort(trip)
         } catch (ex: Exception) {
-            throw AutosortException("Failed to autosort trip ${trip.tripId}", ex)
+            throw AutosortException("Failed to autosort trip ${trip.tripId}.")
         }
     }
 
     private fun validateTrip(trip: TripDto) {
         if (trip.albums.isEmpty()) {
-            throw InvalidTripException("Trip must contain at least one album")
+            throw InvalidDataException("Trip must contain at least one album.")
         }
 
         if (trip.albums.any { it.media.isEmpty() }) {
-            throw InvalidTripException("Albums must not be empty")
+            throw InvalidDataException("Albums must not be empty.")
         }
     }
 
