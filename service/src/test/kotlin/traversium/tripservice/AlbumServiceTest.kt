@@ -22,10 +22,7 @@ import traversium.tripservice.db.repository.AlbumRepository
 import traversium.tripservice.db.repository.TripRepository
 import traversium.tripservice.dto.AlbumDto
 import traversium.tripservice.dto.MediaDto
-import traversium.tripservice.exceptions.AlbumNotFoundException
-import traversium.tripservice.exceptions.AlbumUnauthorizedException
-import traversium.tripservice.exceptions.AlbumWithoutMediaException
-import traversium.tripservice.exceptions.MediaNotFoundException
+import traversium.tripservice.exceptions.*
 import traversium.tripservice.security.BaseSecuritySetup
 import traversium.tripservice.service.AlbumService
 import traversium.tripservice.service.FirebaseService
@@ -132,7 +129,7 @@ class AlbumServiceTest : BaseSecuritySetup() {
     fun `getAllAlbums throws not found if list is empty`() {
         `when`(albumRepository.findAllAccessibleAlbumsByUserId(OWNER_ID)).thenReturn(emptyList())
 
-        assertThrows(AlbumNotFoundException::class.java) {
+        assertThrows(NotFoundException::class.java) {
             albumService.getAllAlbums()
         }
     }
@@ -172,7 +169,7 @@ class AlbumServiceTest : BaseSecuritySetup() {
 
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(trip))
 
-        assertThrows(AlbumUnauthorizedException::class.java) {
+        assertThrows(UnauthorizedException::class.java) {
             albumService.getByAlbumId(ALBUM_ID)
         }
     }
@@ -184,7 +181,7 @@ class AlbumServiceTest : BaseSecuritySetup() {
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(trip))
         `when`(albumRepository.findById(ALBUM_ID)).thenReturn(Optional.empty()) // Album not found
 
-        assertThrows(AlbumNotFoundException::class.java) {
+        assertThrows(NotFoundException::class.java) {
             albumService.getByAlbumId(ALBUM_ID)
         }
     }
@@ -217,7 +214,7 @@ class AlbumServiceTest : BaseSecuritySetup() {
 
         val updatedDto = AlbumDto(null, "New Title", "New Desc", emptyList())
 
-        assertThrows(AlbumUnauthorizedException::class.java) {
+        assertThrows(UnauthorizedException::class.java) {
             albumService.updateAlbum(ALBUM_ID, updatedDto)
         }
         verify(albumRepository, never()).save(any())
@@ -244,7 +241,7 @@ class AlbumServiceTest : BaseSecuritySetup() {
         mockAlbumToTripLink()
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(trip))
 
-        assertThrows(AlbumUnauthorizedException::class.java) {
+        assertThrows(UnauthorizedException::class.java) {
             albumService.getMediaFromAlbum(ALBUM_ID, MEDIA_ID)
         }
     }
@@ -257,7 +254,7 @@ class AlbumServiceTest : BaseSecuritySetup() {
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(trip))
         `when`(albumRepository.findById(ALBUM_ID)).thenReturn(Optional.of(emptyAlbum))
 
-        assertThrows(AlbumWithoutMediaException::class.java) {
+        assertThrows(NotFoundException::class.java) {
             albumService.getMediaFromAlbum(ALBUM_ID, MEDIA_ID)
         }
     }
@@ -269,7 +266,7 @@ class AlbumServiceTest : BaseSecuritySetup() {
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(trip))
         `when`(albumRepository.findById(ALBUM_ID)).thenReturn(Optional.of(defaultAlbum)) // Album has MEDIA_ID
 
-        assertThrows(MediaNotFoundException::class.java) {
+        assertThrows(NotFoundException::class.java) {
             albumService.getMediaFromAlbum(ALBUM_ID, 999L) // Searching for a different ID
         }
     }
@@ -317,7 +314,7 @@ class AlbumServiceTest : BaseSecuritySetup() {
         mockAlbumToTripLink()
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(trip))
 
-        assertThrows(AlbumUnauthorizedException::class.java) {
+        assertThrows(UnauthorizedException::class.java) {
             albumService.addMediaToAlbum(ALBUM_ID, mediaDtos)
         }
         verify(albumRepository, never()).save(any())
@@ -344,7 +341,7 @@ class AlbumServiceTest : BaseSecuritySetup() {
         mockAlbumToTripLink()
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(trip))
 
-        assertThrows(AlbumUnauthorizedException::class.java) {
+        assertThrows(UnauthorizedException::class.java) {
             albumService.deleteMediaFromAlbum(ALBUM_ID, MEDIA_ID)
         }
         verify(albumRepository, never()).save(any())
@@ -357,7 +354,7 @@ class AlbumServiceTest : BaseSecuritySetup() {
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(trip))
         `when`(albumRepository.findById(ALBUM_ID)).thenReturn(Optional.of(defaultAlbum)) // Album contains MEDIA_ID
 
-        assertThrows(MediaNotFoundException::class.java) {
+        assertThrows(NotFoundException::class.java) {
             albumService.deleteMediaFromAlbum(ALBUM_ID, 999L) // ID that is not in the default album
         }
         verify(albumRepository, never()).save(any())

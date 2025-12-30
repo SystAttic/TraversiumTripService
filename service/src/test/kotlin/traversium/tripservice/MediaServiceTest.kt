@@ -12,8 +12,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import traversium.tripservice.db.model.Media
 import traversium.tripservice.db.repository.MediaRepository
 import traversium.tripservice.db.repository.TripRepository
-import traversium.tripservice.exceptions.MediaNotFoundException
-import traversium.tripservice.exceptions.MediaUnauthorizedException
+import traversium.tripservice.exceptions.*
 import traversium.tripservice.security.BaseSecuritySetup
 import traversium.tripservice.service.FirebaseService
 import traversium.tripservice.service.MediaService
@@ -74,7 +73,7 @@ class MediaServiceTest : BaseSecuritySetup() {
     fun `getAllMedia throws not found if list is empty`() {
         `when`(mediaRepository.findAllAccessibleMediaByUserId(OWNER_ID)).thenReturn(emptyList())
 
-        assertThrows(MediaNotFoundException::class.java) {
+        assertThrows(NotFoundException::class.java) {
             mediaService.getAllMedia()
         }
     }
@@ -96,7 +95,7 @@ class MediaServiceTest : BaseSecuritySetup() {
         `when`(tripRepository.findTripIdByMediaId(MEDIA_ID)).thenReturn(Optional.of(TRIP_ID))
         `when`(tripRepository.isUserAuthorizedToView(TRIP_ID, OWNER_ID)).thenReturn(false)
 
-        assertThrows(MediaUnauthorizedException::class.java) {
+        assertThrows(UnauthorizedException::class.java) {
             mediaService.getMediaById(MEDIA_ID)
         }
         verify(mediaRepository, never()).findById(any())
@@ -106,7 +105,7 @@ class MediaServiceTest : BaseSecuritySetup() {
     fun `getMediaById throws not found if media is not linked to a trip`() {
         `when`(tripRepository.findTripIdByMediaId(MEDIA_ID)).thenReturn(Optional.empty())
 
-        assertThrows(MediaNotFoundException::class.java) {
+        assertThrows(NotFoundException::class.java) {
             mediaService.getMediaById(MEDIA_ID)
         }
         verify(tripRepository, never()).isUserAuthorizedToView(anyLong(), anyString())
@@ -118,7 +117,7 @@ class MediaServiceTest : BaseSecuritySetup() {
         `when`(tripRepository.isUserAuthorizedToView(TRIP_ID, OWNER_ID)).thenReturn(true)
         `when`(mediaRepository.findById(MEDIA_ID)).thenReturn(Optional.empty())
 
-        assertThrows(MediaNotFoundException::class.java) {
+        assertThrows(NotFoundException::class.java) {
             mediaService.getMediaById(MEDIA_ID)
         }
     }
@@ -144,7 +143,7 @@ class MediaServiceTest : BaseSecuritySetup() {
         val uploaderId = OTHER_UPLOADER_ID
         `when`(mediaRepository.findAccessibleMediaByUploader(uploaderId, OWNER_ID)).thenReturn(emptyList())
 
-        assertThrows(MediaNotFoundException::class.java) {
+        assertThrows(NotFoundException::class.java) {
             mediaService.getMediaByUploader(uploaderId)
         }
     }

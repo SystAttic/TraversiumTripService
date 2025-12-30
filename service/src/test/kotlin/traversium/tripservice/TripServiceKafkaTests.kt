@@ -195,7 +195,7 @@ class TripServiceKafkaTests() : BaseSecuritySetup() {
         tripService.addCollaboratorToTrip(saved.tripId!!, COLLABORATOR_ID)
         recieveAndClearKafkaMessages()
 
-        tripService.deleteCollaboratorFromTrip(saved.tripId!!, COLLABORATOR_ID)
+        tripService.removeCollaboratorFromTrip(saved.tripId!!, COLLABORATOR_ID)
 
         //TODO - update when EntityType for Collaborator changes to COLLABORATOR
         testKafkaMessages(saved, TripEventType.COLLABORATOR_DELETED, ActionType.REMOVE_COLLABORATOR, TripActivityAction.TRIP_COLLABORATOR_REMOVED)
@@ -225,7 +225,7 @@ class TripServiceKafkaTests() : BaseSecuritySetup() {
         tripService.addViewerToTrip(saved.tripId!!, VIEWER_ID)
         recieveAndClearKafkaMessages()
 
-        tripService.deleteViewerFromTrip(saved.tripId!!, VIEWER_ID)
+        tripService.removeViewerFromTrip(saved.tripId!!, VIEWER_ID)
 
         //TODO - update when EntityType for Viewer changes to VIEWER
         testKafkaMessages(saved, TripEventType.VIEWER_DELETED, ActionType.REMOVE_VIEWER, TripActivityAction.TRIP_VIEWER_REMOVED)

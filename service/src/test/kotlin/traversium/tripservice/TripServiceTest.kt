@@ -122,7 +122,7 @@ class TripServiceTest : BaseSecuritySetup() {
     fun `createTrip throws exception if title is null`() {
         val dto = TripDto(tripId = null, title = null)
 
-        assertThrows(IllegalArgumentException::class.java) {
+        assertThrows(InvalidDataException::class.java) {
             tripService.createTrip(dto)
         }
 
@@ -212,7 +212,7 @@ class TripServiceTest : BaseSecuritySetup() {
 
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(privateTrip))
 
-        assertThrows(TripUnauthorizedException::class.java) {
+        assertThrows(UnauthorizedException::class.java) {
             tripService.getByTripId(TRIP_ID)
         }
     }
@@ -221,7 +221,7 @@ class TripServiceTest : BaseSecuritySetup() {
     fun `getByTripId not found`() {
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.empty())
 
-        assertThrows(TripNotFoundException::class.java) {
+        assertThrows(NotFoundException::class.java) {
             tripService.getByTripId(TRIP_ID)
         }
     }
@@ -290,7 +290,7 @@ class TripServiceTest : BaseSecuritySetup() {
 
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(tripOwnedByOther))
 
-        assertThrows(TripUnauthorizedException::class.java) {
+        assertThrows(UnauthorizedException::class.java) {
             tripService.updateTrip(updatedDto)
         }
 
@@ -312,7 +312,7 @@ class TripServiceTest : BaseSecuritySetup() {
 
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(tripOwnedByOther))
 
-        assertThrows(TripUnauthorizedException::class.java) {
+        assertThrows(UnauthorizedException::class.java) {
             tripService.deleteTrip(TRIP_ID)
         }
 
@@ -356,7 +356,7 @@ class TripServiceTest : BaseSecuritySetup() {
 
         `when`(tripRepository.findByCollaboratorId(any<String>(), any<String>())).thenReturn(emptyList())
 
-        assertThrows(TripNotFoundException::class.java) {
+        assertThrows(NotFoundException::class.java) {
             tripService.getTripsByCollaborator(otherUserId)
         }
     }
@@ -382,7 +382,7 @@ class TripServiceTest : BaseSecuritySetup() {
 
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(tripOwnedByOther))
 
-        assertThrows(TripUnauthorizedException::class.java) {
+        assertThrows(UnauthorizedException::class.java) {
             tripService.addCollaboratorToTrip(TRIP_ID, newCollaboratorId)
         }
 
@@ -398,7 +398,7 @@ class TripServiceTest : BaseSecuritySetup() {
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(tripWithCollaborator))
         `when`(tripRepository.save(any<Trip>())).thenAnswer { it.arguments[0] }
 
-        tripService.deleteCollaboratorFromTrip(TRIP_ID, COLLABORATOR_ID)
+        tripService.removeCollaboratorFromTrip(TRIP_ID, COLLABORATOR_ID)
 
         assertEquals(1, tripWithCollaborator.collaborators.size)
         assertEquals(false, tripWithCollaborator.collaborators.contains(COLLABORATOR_ID))
@@ -412,8 +412,8 @@ class TripServiceTest : BaseSecuritySetup() {
 
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(tripOwnedByOther))
 
-        assertThrows(TripUnauthorizedException::class.java) {
-            tripService.deleteCollaboratorFromTrip(TRIP_ID, COLLABORATOR_ID)
+        assertThrows(UnauthorizedException::class.java) {
+            tripService.removeCollaboratorFromTrip(TRIP_ID, COLLABORATOR_ID)
         }
 
         verify(tripRepository, never()).save(any())
@@ -423,8 +423,8 @@ class TripServiceTest : BaseSecuritySetup() {
     fun `deleteCollaboratorFromTrip throws if collaborator not found`() {
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(defaultTrip))
 
-        assertThrows(TripWithoutCollaboratorException::class.java) {
-            tripService.deleteCollaboratorFromTrip(TRIP_ID, COLLABORATOR_ID)
+        assertThrows(NotFoundException::class.java) {
+            tripService.removeCollaboratorFromTrip(TRIP_ID, COLLABORATOR_ID)
         }
 
         verify(tripRepository, never()).save(any())
@@ -434,8 +434,8 @@ class TripServiceTest : BaseSecuritySetup() {
     fun `deleteCollaboratorFromTrip throws if attempting to delete owner`() {
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(defaultTrip))
 
-        assertThrows(TripUnauthorizedException::class.java) {
-            tripService.deleteCollaboratorFromTrip(TRIP_ID, OWNER_ID)
+        assertThrows(UnauthorizedException::class.java) {
+            tripService.removeCollaboratorFromTrip(TRIP_ID, OWNER_ID)
         }
 
         verify(tripRepository, never()).save(any())
@@ -459,7 +459,7 @@ class TripServiceTest : BaseSecuritySetup() {
     fun `getTripsByViewer throws not found if list is empty`() {
         `when`(tripRepository.findByViewerId(OWNER_ID)).thenReturn(emptyList())
 
-        assertThrows(TripNotFoundException::class.java) {
+        assertThrows(NotFoundException::class.java) {
             tripService.getTripsByViewer()
         }
     }
@@ -485,7 +485,7 @@ class TripServiceTest : BaseSecuritySetup() {
 
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(tripOwnedByOther))
 
-        assertThrows(TripUnauthorizedException::class.java) {
+        assertThrows(UnauthorizedException::class.java) {
             tripService.addViewerToTrip(TRIP_ID, newViewerId)
         }
 
@@ -502,7 +502,7 @@ class TripServiceTest : BaseSecuritySetup() {
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(tripWithViewer))
         `when`(tripRepository.save(any<Trip>())).thenAnswer { it.arguments[0] }
 
-        tripService.deleteViewerFromTrip(TRIP_ID, viewerToDeleteId)
+        tripService.removeViewerFromTrip(TRIP_ID, viewerToDeleteId)
 
         assertEquals(0, tripWithViewer.viewers.size)
         assertEquals(false, tripWithViewer.viewers.contains(viewerToDeleteId))
@@ -517,8 +517,8 @@ class TripServiceTest : BaseSecuritySetup() {
 
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(tripOwnedByOther))
 
-        assertThrows(TripUnauthorizedException::class.java) {
-            tripService.deleteViewerFromTrip(TRIP_ID, viewerToDeleteId)
+        assertThrows(UnauthorizedException::class.java) {
+            tripService.removeViewerFromTrip(TRIP_ID, viewerToDeleteId)
         }
 
         verify(tripRepository, never()).save(any())
@@ -528,8 +528,8 @@ class TripServiceTest : BaseSecuritySetup() {
     fun `deleteViewerFromTrip throws if viewer not found`() {
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(defaultTrip))
 
-        assertThrows(TripWithoutViewerException::class.java) {
-            tripService.deleteViewerFromTrip(TRIP_ID, VIEWER_ID)
+        assertThrows(NotFoundException::class.java) {
+            tripService.removeViewerFromTrip(TRIP_ID, VIEWER_ID)
         }
 
         verify(tripRepository, never()).save(any())
@@ -560,7 +560,7 @@ class TripServiceTest : BaseSecuritySetup() {
 
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(privateTripOwnedByOther))
 
-        assertThrows(TripUnauthorizedException::class.java) {
+        assertThrows(UnauthorizedException::class.java) {
             tripService.getAlbumFromTrip(TRIP_ID, ALBUM_ID)
         }
     }
@@ -571,7 +571,7 @@ class TripServiceTest : BaseSecuritySetup() {
 
         `when`(tripRepository.isUserAuthorizedToView(TRIP_ID, OWNER_ID)).thenReturn(true)
 
-        assertThrows(TripWithoutAlbumsException::class.java) {
+        assertThrows(NotFoundException::class.java) {
             tripService.getAlbumFromTrip(TRIP_ID, ALBUM_ID)
         }
 
@@ -610,7 +610,7 @@ class TripServiceTest : BaseSecuritySetup() {
 
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(unauthorizedTrip))
 
-        assertThrows(TripUnauthorizedException::class.java) {
+        assertThrows(UnauthorizedException::class.java) {
             tripService.addAlbumToTrip(TRIP_ID, albumDto)
         }
 
@@ -643,7 +643,7 @@ class TripServiceTest : BaseSecuritySetup() {
 
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(unauthorizedTrip))
 
-        assertThrows(TripUnauthorizedException::class.java) {
+        assertThrows(UnauthorizedException::class.java) {
             tripService.deleteAlbumFromTrip(TRIP_ID, ALBUM_ID)
         }
 
@@ -659,7 +659,7 @@ class TripServiceTest : BaseSecuritySetup() {
 
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(tripWithDifferentAlbum))
 
-        assertThrows(AlbumNotFoundException::class.java) {
+        assertThrows(NotFoundException::class.java) {
             tripService.deleteAlbumFromTrip(TRIP_ID, ALBUM_ID) // Trying to delete Album 99
         }
 
@@ -695,7 +695,7 @@ class TripServiceTest : BaseSecuritySetup() {
 
         `when`(tripRepository.findById(TRIP_ID)).thenReturn(Optional.of(unauthorizedTrip))
 
-        assertThrows(TripUnauthorizedException::class.java) {
+        assertThrows(UnauthorizedException::class.java) {
             tripService.getAllMediaFromTrip(TRIP_ID)
         }
     }
