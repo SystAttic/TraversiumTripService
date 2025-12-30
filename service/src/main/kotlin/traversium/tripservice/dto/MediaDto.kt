@@ -1,8 +1,9 @@
 package traversium.tripservice.dto
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import jakarta.persistence.Column
 import jakarta.persistence.Embeddable
-import jakarta.persistence.Transient
+import com.fasterxml.jackson.annotation.JsonIgnore
 import traversium.tripservice.db.model.Media
 import java.time.OffsetDateTime
 
@@ -33,13 +34,16 @@ data class MediaDto(
 
 @Embeddable
 data class GeoLocation(
-    val latitude: Double,
-    val longitude: Double
+    @Column(name = "latitude")
+    val latitude: Double = 0.0,
+    @Column(name = "longitude")
+    val longitude: Double = 0.0
 ){
     companion object {
-        val UNKNOWN = GeoLocation(0.0, 0.0)
+        val UNKNOWN = GeoLocation()
     }
-    @get:Transient
-    val isUnknown: Boolean
-        get() = this == UNKNOWN
+
+    @JsonIgnore
+    fun hasUnknownCoordinates(): Boolean =
+        latitude == 0.0 && longitude == 0.0
 }
