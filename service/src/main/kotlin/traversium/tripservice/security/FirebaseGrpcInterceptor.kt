@@ -20,6 +20,8 @@ FirebaseGrpcInterceptor(
     companion object {
         private val AUTHORIZATION_METADATA_KEY: Metadata.Key<String> =
             Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER)
+        private val TENANT_ID_METADATA_KEY: Metadata.Key<String> =
+            Metadata.Key.of("X-Tenant-Id", Metadata.ASCII_STRING_MARSHALLER)
     }
 
     override fun <ReqT : Any?, RespT : Any?> interceptCall(
@@ -41,24 +43,22 @@ FirebaseGrpcInterceptor(
 
             val decodedToken = firebaseAuth.verifyIdToken(token)
             val uid = decodedToken.uid
-            val tenantId = decodedToken.tenantId
 
-            TenantContext.setTenant(TenantUtils.sanitizeTenantIdForSchema(tenantId ?: "public"))
+            val tenantIdHeader = headers.get(TENANT_ID_METADATA_KEY)
+            val tenantId = TenantUtils.sanitizeTenantIdForSchema(tenantIdHeader ?: "public")
 
-            val userRecord = if (tenantId != null) {
-                try {
-                    val tenantAuth = firebaseAuth.tenantManager.getAuthForTenant(tenantId)
-                    tenantAuth.getUser(uid)
-                } catch (e: FirebaseAuthException) {
-                    logger.error("Failed to get user from tenant $tenantId: ${e.message}")
-                    call.close(
-                        Status.UNAUTHENTICATED.withDescription("Invalid tenant: ${e.message}"),
-                        Metadata()
-                    )
-                    return object : ServerCall.Listener<ReqT>() {}
-                }
-            } else {
-                firebaseAuth.getUser(uid)
+            TenantContext.setTenant(tenantId)
+
+            val userRecord = try {
+                val tenantAuth = firebaseAuth.tenantManager.getAuthForTenant(tenantId)
+                tenantAuth.getUser(uid)
+            } catch (e: FirebaseAuthException) {
+                logger.error("Failed to get user from tenant $tenantId: ${e.message}")
+                call.close(
+                    Status.UNAUTHENTICATED.withDescription("Invalid tenant: ${e.message}"),
+                    Metadata()
+                )
+                return object : ServerCall.Listener<ReqT>() {}
             }
 
             SecurityContextHolder.getContext().authentication = TraversiumAuthentication(
@@ -78,6 +78,8 @@ FirebaseGrpcInterceptor(
                 Metadata()
             )
             return object : ServerCall.Listener<ReqT>() {}
+        } finally {
+            TenantContext.clear()
         }
     }
 
