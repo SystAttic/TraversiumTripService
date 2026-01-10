@@ -49,26 +49,14 @@ FirebaseGrpcInterceptor(
 
             TenantContext.setTenant(tenantId)
 
-            val userRecord = try {
-                val tenantAuth = firebaseAuth.tenantManager.getAuthForTenant(tenantId)
-                tenantAuth.getUser(uid)
-            } catch (e: FirebaseAuthException) {
-                logger.error("Failed to get user from tenant $tenantId: ${e.message}")
-                call.close(
-                    Status.UNAUTHENTICATED.withDescription("Invalid tenant: ${e.message}"),
-                    Metadata()
-                )
-                return object : ServerCall.Listener<ReqT>() {}
-            }
-
             SecurityContextHolder.getContext().authentication = TraversiumAuthentication(
-                userRecordToPrincipal(userRecord),
+                userRecordToPrincipal(firebaseAuth.getUser(uid)),
                 null,
                 emptyList(),
                 token
             )
 
-            logger.debug("Authenticated gRPC request for user ${userRecord.email} in tenant $tenantId")
+            logger.debug("Authenticated gRPC request for user $uid in tenant $tenantId")
 
             return next.startCall(call, headers)
         } catch (ex: Exception) {
